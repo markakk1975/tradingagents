@@ -123,11 +123,15 @@ def analyze_stock():
         # Run the multi-agent analysis
         result, decision = ta_graph.propagate(symbol, date)
         
+        # Convert result and decision to JSON-serializable format
+        serializable_result = str(result) if result else None
+        serializable_decision = str(decision) if decision else None
+        
         return jsonify({
             "symbol": symbol,
             "analysis_date": date,
-            "decision": decision,
-            "result": result,
+            "decision": serializable_decision,
+            "result": serializable_result,
             "timestamp": datetime.now().isoformat(),
             "status": "completed"
         })
