@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: tradingagents-dashboard
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r dashboard-requirements.txt
+    startCommand: python dashboard.py
+    healthCheckPath: /
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: 1
+      - key: FLASK_ENV
+        value: production
+      - key: DASHBOARD_PORT
+        value: 10000
+      - key: TRADINGAGENTS_API_URL
+        value: https://stock-prediction-model-x5mr.onrender.com
