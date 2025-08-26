@@ -22,6 +22,10 @@ services:
         value: 1
       - key: ONLINE_TOOLS
         value: true
+      - key: DEEP_THINK_LLM
+        value: gpt-4o
+      - key: QUICK_THINK_LLM
+        value: gpt-4o
       - key: OPENAI_API_KEY
         sync: false
       - key: FINNHUB_API_KEY
