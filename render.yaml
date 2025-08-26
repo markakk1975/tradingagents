@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: tradingagents-api
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r requirements.txt && pip install flask
+    startCommand: python app.py
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: 1
+      - key: FLASK_ENV
+        value: production
+      - key: LLM_PROVIDER
+        value: openai
+      - key: DEEP_THINK_LLM
+        value: gpt-4o-mini
+      - key: QUICK_THINK_LLM
+        value: gpt-4o-mini
+      - key: MAX_DEBATE_ROUNDS
+        value: 1
+      - key: ONLINE_TOOLS
+        value: true
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FINNHUB_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
