@@ -422,6 +422,9 @@ HTML_TEMPLATE = """
             }
         }
 
+        let currentAnalysisId = null;
+        let progressCheckInterval = null;
+
         async function startAnalysis(event) {
             event.preventDefault();
             
@@ -444,13 +447,13 @@ HTML_TEMPLATE = """
             analyzeBtn.classList.add('pulse');
             
             document.getElementById('analysisProgress').textContent = `Analyzing ${symbol}...`;
-            document.getElementById('activeAgents').textContent = '7 / 7 agents active';
+            document.getElementById('activeAgents').textContent = 'Initializing agents...';
             
             // Reset progress
-            document.getElementById('progressFill').style.width = '10%';
+            document.getElementById('progressFill').style.width = '5%';
             
-            // Simulate agent activation
-            simulateAgentProgress();
+            // Start real-time progress tracking
+            startRealTimeProgress();
             
             try {
                 const response = await fetch('/api/analyze', {
@@ -466,11 +469,19 @@ HTML_TEMPLATE = """
                 if (result.error) {
                     showError(result.message || 'Analysis failed');
                 } else {
+                    // Store analysis ID for progress tracking
+                    currentAnalysisId = result.analysis_id;
                     showResults(result);
                 }
             } catch (error) {
                 showError('Network error: ' + error.message);
             } finally {
+                // Stop progress tracking
+                if (progressCheckInterval) {
+                    clearInterval(progressCheckInterval);
+                    progressCheckInterval = null;
+                }
+                
                 // Reset button
                 analyzeBtn.disabled = false;
                 analyzeBtn.textContent = '🔍 Start Analysis';
@@ -479,37 +490,42 @@ HTML_TEMPLATE = """
             }
         }
 
-        function simulateAgentProgress() {
-            const agents = [
-                'Fundamental', 'Sentiment', 'News', 'Technical', 
-                'Bullish', 'Bearish', 'Trader'
-            ];
+        function startRealTimeProgress() {
+            let progressStep = 10;
+            const maxProgress = 95;
             
-            let currentAgent = 0;
-            const agentCards = document.querySelectorAll('.agent-card');
-            
-            const interval = setInterval(() => {
-                if (currentAgent < agents.length) {
-                    // Activate current agent
-                    agentCards[currentAgent].classList.add('active');
-                    agentCards[currentAgent].querySelector('p').textContent = 'Analyzing...';
+            // Update progress every 2 seconds
+            progressCheckInterval = setInterval(() => {
+                if (progressStep < maxProgress) {
+                    progressStep += Math.random() * 5; // Random increment between 0-5%
+                    if (progressStep > maxProgress) progressStep = maxProgress;
                     
-                    // Update progress
-                    const progress = ((currentAgent + 1) / agents.length) * 80; // 80% for agents
-                    document.getElementById('progressFill').style.width = progress + '%';
+                    document.getElementById('progressFill').style.width = progressStep + '%';
                     
-                    currentAgent++;
-                } else {
-                    clearInterval(interval);
-                    // Final processing
-                    document.getElementById('progressFill').style.width = '95%';
-                    agentCards.forEach(card => {
-                        card.classList.remove('active');
-                        card.querySelector('p').textContent = 'Complete';
-                    });
+                    // Update status messages based on progress
+                    if (progressStep < 20) {
+                        document.getElementById('analysisProgress').textContent = '🚀 Starting analysis...';
+                        document.getElementById('activeAgents').textContent = 'Initializing agents...';
+                    } else if (progressStep < 40) {
+                        document.getElementById('analysisProgress').textContent = '📊 Fundamental analysis in progress...';
+                        document.getElementById('activeAgents').textContent = 'Fundamental Analyst working...';
+                    } else if (progressStep < 55) {
+                        document.getElementById('analysisProgress').textContent = '📈 Technical analysis running...';
+                        document.getElementById('activeAgents').textContent = 'Technical Analyst working...';
+                    } else if (progressStep < 70) {
+                        document.getElementById('analysisProgress').textContent = '📰 News sentiment analysis...';
+                        document.getElementById('activeAgents').textContent = 'News & Sentiment Analysts working...';
+                    } else if (progressStep < 85) {
+                        document.getElementById('analysisProgress').textContent = '🤔 Agent debate in progress...';
+                        document.getElementById('activeAgents').textContent = 'Bullish vs Bearish researchers debating...';
+                    } else {
+                        document.getElementById('analysisProgress').textContent = '⚖️ Final trading decision...';
+                        document.getElementById('activeAgents').textContent = 'Trader & Risk Manager deciding...';
+                    }
                 }
-            }, 3000); // Each agent takes ~3 seconds
+            }, 2000); // Update every 2 seconds
         }
+
 
         function showResults(result) {
             document.getElementById('resultsSection').style.display = 'block';
@@ -597,6 +613,24 @@ def analyze_proxy():
         }, 408
     except Exception as e:
         return {"error": "Analysis failed", "message": str(e)}, 500
+
+@app.route('/api/progress/<analysis_id>')
+def progress_proxy(analysis_id):
+    """Proxy progress request to TradingAgents API"""
+    try:
+        response = requests.get(f"{TRADINGAGENTS_API_URL}/progress/{analysis_id}", timeout=10)
+        return response.json(), response.status_code
+    except Exception as e:
+        return {"error": "Progress check failed", "message": str(e)}, 500
+
+@app.route('/api/progress')
+def all_progress_proxy():
+    """Proxy all progress request to TradingAgents API"""
+    try:
+        response = requests.get(f"{TRADINGAGENTS_API_URL}/progress", timeout=10)
+        return response.json(), response.status_code
+    except Exception as e:
+        return {"error": "Progress check failed", "message": str(e)}, 500
 
 @app.route('/api/config')
 def config_proxy():

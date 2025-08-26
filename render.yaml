@@ -15,9 +15,9 @@ services:
       - key: LLM_PROVIDER
         value: openai
       - key: DEEP_THINK_LLM
-        value: gpt-4o-mini
+        value: gpt-4o
       - key: QUICK_THINK_LLM
-        value: gpt-4o-mini
+        value: gpt-4o
       - key: MAX_DEBATE_ROUNDS
         value: 1
       - key: ONLINE_TOOLS

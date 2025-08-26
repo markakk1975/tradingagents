@@ -23,6 +23,9 @@ app = Flask(__name__)
 # Global variable to store trading agents instance
 ta_graph = None
 
+# Global progress tracking
+analysis_progress = {}
+
 def initialize_trading_agents():
     """Initialize TradingAgents with environment configuration"""
     global ta_graph
@@ -120,14 +123,45 @@ def analyze_stock():
         
         logger.info(f"🔍 Analyzing {symbol} for date {date}")
         
+        # Initialize progress tracking for this analysis
+        analysis_id = f"{symbol}_{date}_{datetime.now().strftime('%H%M%S')}"
+        analysis_progress[analysis_id] = {
+            "symbol": symbol,
+            "date": date,
+            "status": "starting",
+            "progress": 0,
+            "current_agent": "Initializing",
+            "agents_completed": [],
+            "started_at": datetime.now().isoformat(),
+            "messages": ["🚀 Starting multi-agent analysis..."]
+        }
+        
+        # Update progress - Starting analysis
+        analysis_progress[analysis_id]["status"] = "analyzing"
+        analysis_progress[analysis_id]["progress"] = 10
+        analysis_progress[analysis_id]["current_agent"] = "Multi-Agent System"
+        analysis_progress[analysis_id]["messages"].append(f"📊 Initializing analysis for {symbol}")
+        
         # Run the multi-agent analysis
+        logger.info(f"📈 Running multi-agent propagation for {symbol}")
+        analysis_progress[analysis_id]["progress"] = 20
+        analysis_progress[analysis_id]["messages"].append("🤖 Activating all agents...")
+        
         result, decision = ta_graph.propagate(symbol, date)
+        
+        # Update progress - Analysis complete
+        analysis_progress[analysis_id]["status"] = "completed"
+        analysis_progress[analysis_id]["progress"] = 100
+        analysis_progress[analysis_id]["current_agent"] = "Completed"
+        analysis_progress[analysis_id]["completed_at"] = datetime.now().isoformat()
+        analysis_progress[analysis_id]["messages"].append("✅ Analysis completed successfully!")
         
         # Convert result and decision to JSON-serializable format
         serializable_result = str(result) if result else None
         serializable_decision = str(decision) if decision else None
         
         return jsonify({
+            "analysis_id": analysis_id,
             "symbol": symbol,
             "analysis_date": date,
             "decision": serializable_decision,
@@ -144,6 +178,26 @@ def analyze_stock():
             "symbol": symbol,
             "date": date
         }), 500
+
+@app.route('/progress/<analysis_id>')
+def get_analysis_progress(analysis_id):
+    """Get real-time analysis progress"""
+    if analysis_id not in analysis_progress:
+        return jsonify({
+            "error": "Analysis not found",
+            "analysis_id": analysis_id
+        }), 404
+    
+    return jsonify(analysis_progress[analysis_id])
+
+@app.route('/progress')
+def list_active_analyses():
+    """List all active and recent analyses"""
+    return jsonify({
+        "active_analyses": list(analysis_progress.keys()),
+        "total_count": len(analysis_progress),
+        "analyses": analysis_progress
+    })
 
 @app.route('/config')
 def get_config():
