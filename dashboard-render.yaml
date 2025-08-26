@@ -5,7 +5,7 @@ services:
     region: oregon
     plan: starter
     buildCommand: pip install -r dashboard-requirements.txt
-    startCommand: python dashboard.py
+    startCommand: gunicorn --bind 0.0.0.0:$PORT dashboard:app
     healthCheckPath: /
     envVars:
       - key: PYTHONUNBUFFERED

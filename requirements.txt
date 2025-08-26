@@ -25,3 +25,4 @@ questionary
 langchain_anthropic
 langchain-google-genai
 flask>=3.0.0
+gunicorn
