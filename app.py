@@ -182,7 +182,7 @@ def list_agents():
     })
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))
+    port = int(os.getenv("PORT", 8001))
     debug_mode = os.getenv("FLASK_ENV") == "development"
     
     logger.info("🚀 Starting TradingAgents API server...")
