@@ -1025,6 +1025,14 @@ HTML_TEMPLATE = """
                     body: JSON.stringify({ symbol, date }),
                 });
                 
+                // Check if response is actually JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const responseText = await response.text();
+                    showError(`Server returned non-JSON response: ${responseText.substring(0, 200)}...`);
+                    return;
+                }
+                
                 const result = await response.json();
                 
                 if (result.error) {
@@ -1058,7 +1066,12 @@ HTML_TEMPLATE = """
                     }, 3000); // Wait 3 seconds to show progress
                 }
             } catch (error) {
-                showError('Network error: ' + error.message);
+                console.error('Analysis error:', error);
+                if (error.message.includes('Unexpected token') || error.message.includes('JSON') || error.message.includes('Expecting value')) {
+                    showError('Server returned invalid response. The API service may be starting up or experiencing issues. Please wait a moment and try again.');
+                } else {
+                    showError('Network error: ' + error.message);
+                }
                 
                 // Reset button on error
                 const analyzeBtn = document.getElementById('analyzeBtn');
@@ -1087,6 +1100,13 @@ HTML_TEMPLATE = """
                     const response = await fetch(`/api/progress/${currentAnalysisId}`);
                     
                     if (response.ok) {
+                        // Check if response is actually JSON
+                        const contentType = response.headers.get('content-type');
+                        if (!contentType || !contentType.includes('application/json')) {
+                            console.warn('⚠️ Progress endpoint returned non-JSON response');
+                            return;
+                        }
+                        
                         const progressData = await response.json();
                         console.log('📊 Progress data:', progressData);
                         
