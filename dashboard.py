@@ -496,39 +496,112 @@ HTML_TEMPLATE = """
         }
 
         function startRealTimeProgress() {
-            let progressStep = 10;
-            const maxProgress = 95;
+            if (!currentAnalysisId) {
+                console.log('❌ No analysis ID available for progress tracking');
+                return;
+            }
             
-            // Update progress every 2 seconds
-            progressCheckInterval = setInterval(() => {
-                if (progressStep < maxProgress) {
-                    progressStep += Math.random() * 5; // Random increment between 0-5%
-                    if (progressStep > maxProgress) progressStep = maxProgress;
+            // Poll for real progress every 2 seconds
+            progressCheckInterval = setInterval(async () => {
+                try {
+                    console.log(`🔄 Checking progress for analysis: ${currentAnalysisId}`);
+                    const response = await fetch(`/api/progress/${currentAnalysisId}`);
                     
-                    document.getElementById('progressFill').style.width = progressStep + '%';
-                    
-                    // Update status messages based on progress
-                    if (progressStep < 20) {
-                        document.getElementById('analysisProgress').textContent = '🚀 Starting analysis...';
-                        document.getElementById('activeAgents').textContent = 'Initializing agents...';
-                    } else if (progressStep < 40) {
-                        document.getElementById('analysisProgress').textContent = '📊 Fundamental analysis in progress...';
-                        document.getElementById('activeAgents').textContent = 'Fundamental Analyst working...';
-                    } else if (progressStep < 55) {
-                        document.getElementById('analysisProgress').textContent = '📈 Technical analysis running...';
-                        document.getElementById('activeAgents').textContent = 'Technical Analyst working...';
-                    } else if (progressStep < 70) {
-                        document.getElementById('analysisProgress').textContent = '📰 News sentiment analysis...';
-                        document.getElementById('activeAgents').textContent = 'News & Sentiment Analysts working...';
-                    } else if (progressStep < 85) {
-                        document.getElementById('analysisProgress').textContent = '🤔 Agent debate in progress...';
-                        document.getElementById('activeAgents').textContent = 'Bullish vs Bearish researchers debating...';
+                    if (response.ok) {
+                        const progressData = await response.json();
+                        console.log('📊 Progress data:', progressData);
+                        
+                        // Update progress bar
+                        const progress = progressData.progress || 0;
+                        document.getElementById('progressFill').style.width = progress + '%';
+                        
+                        // Update status messages
+                        const status = progressData.status || 'unknown';
+                        const currentAgent = progressData.current_agent || 'System';
+                        const messages = progressData.messages || [];
+                        
+                        document.getElementById('analysisProgress').textContent = 
+                            messages.length > 0 ? messages[messages.length - 1] : `Status: ${status}`;
+                        document.getElementById('activeAgents').textContent = `${currentAgent} (${progress}%)`;
+                        
+                        // Update individual agent cards based on progress
+                        updateAgentCards(progress, currentAgent);
+                        
+                        // Stop polling when complete
+                        if (status === 'completed' || progress >= 100) {
+                            console.log('✅ Analysis completed, stopping progress polling');
+                            clearInterval(progressCheckInterval);
+                            progressCheckInterval = null;
+                            
+                            // Update final status
+                            document.getElementById('analysisProgress').textContent = '✅ Analysis Complete';
+                            document.getElementById('activeAgents').textContent = 'All agents finished';
+                            document.getElementById('progressFill').style.width = '100%';
+                        }
                     } else {
-                        document.getElementById('analysisProgress').textContent = '⚖️ Final trading decision...';
-                        document.getElementById('activeAgents').textContent = 'Trader & Risk Manager deciding...';
+                        console.log('⚠️ Progress endpoint not responding, using fallback');
+                        // Keep existing fake progress as fallback
+                        useFallbackProgress();
                     }
+                } catch (error) {
+                    console.error('❌ Progress polling error:', error);
+                    // Keep existing fake progress as fallback
+                    useFallbackProgress();
                 }
             }, 2000); // Update every 2 seconds
+        }
+        
+        function updateAgentCards(progress, currentAgent) {
+            // Reset all cards
+            const agentCards = document.querySelectorAll('.agent-card');
+            agentCards.forEach(card => {
+                card.classList.remove('active');
+                card.querySelector('p').textContent = 'Ready';
+            });
+            
+            // Highlight current active agent
+            const agentNames = {
+                'Fundamental': 'Fundamental',
+                'Sentiment': 'Sentiment', 
+                'News': 'News',
+                'Technical': 'Technical',
+                'Bullish': 'Bullish',
+                'Bearish': 'Bearish',
+                'Trading Decision Maker': 'Trader',
+                'Multi-Agent System': 'Fundamental' // Default to first agent
+            };
+            
+            const cardName = agentNames[currentAgent] || 'Fundamental';
+            const activeCard = Array.from(agentCards).find(card => 
+                card.querySelector('h4').textContent === cardName
+            );
+            
+            if (activeCard) {
+                activeCard.classList.add('active');
+                activeCard.querySelector('p').textContent = 'Working...';
+            }
+        }
+        
+        function useFallbackProgress() {
+            // Fallback fake progress if real progress fails
+            let progressStep = parseInt(document.getElementById('progressFill').style.width) || 10;
+            const maxProgress = 95;
+            
+            if (progressStep < maxProgress) {
+                progressStep += Math.random() * 3; // Slower increment
+                if (progressStep > maxProgress) progressStep = maxProgress;
+                
+                document.getElementById('progressFill').style.width = progressStep + '%';
+                
+                // Generic status messages
+                if (progressStep < 30) {
+                    document.getElementById('analysisProgress').textContent = '🚀 Analysis in progress...';
+                } else if (progressStep < 60) {
+                    document.getElementById('analysisProgress').textContent = '📊 Agents analyzing data...';
+                } else if (progressStep < 85) {
+                    document.getElementById('analysisProgress').textContent = '🤔 Final decision making...';
+                }
+            }
         }
 
 
