@@ -293,6 +293,150 @@ HTML_TEMPLATE = """
             background: #667eea;
             color: white;
         }
+
+        /* Input container and autocomplete styles */
+        .input-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .company-info {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+            min-height: 16px;
+        }
+
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .autocomplete-item {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .autocomplete-item:hover {
+            background: #f8f9fa;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-symbol {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .autocomplete-company {
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        /* History section styles */
+        .history-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .history-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .history-controls {
+            margin-bottom: 20px;
+        }
+
+        .history-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .history-item:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .history-symbol {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #2c3e50;
+        }
+
+        .history-decision {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .history-decision.buy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .history-decision.sell {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .history-decision.hold {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .history-meta {
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            gap: 15px;
+        }
+
+        .history-date {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
     </style>
 </head>
 <body>
@@ -305,8 +449,12 @@ HTML_TEMPLATE = """
         <div class="analysis-form">
             <form onsubmit="startAnalysis(event)">
                 <div class="form-group">
-                    <input type="text" id="symbol" placeholder="Stock Symbol (e.g. AAPL, TSLA, NVDA)" required>
-                    <input type="date" id="date" value="{{ current_date }}">
+                    <div class="input-container">
+                        <input type="text" id="symbol" placeholder="Stock Symbol (e.g. AAPL, TSLA, NVDA)" required autocomplete="off">
+                        <div id="companyInfo" class="company-info"></div>
+                        <div id="autocomplete" class="autocomplete-dropdown"></div>
+                    </div>
+                    <input type="date" id="date" value="2025-08-27">
                     <button type="submit" id="analyzeBtn" class="btn">🔍 Start Analysis</button>
                 </div>
                 <div class="quick-symbols">
@@ -382,6 +530,16 @@ HTML_TEMPLATE = """
             <h2>📊 Analysis Results</h2>
             <div id="results"></div>
         </div>
+
+        <div class="history-section">
+            <h2>📈 Analysis History</h2>
+            <div class="history-controls">
+                <button onclick="loadAnalysisHistory()" class="btn">🔄 Refresh History</button>
+            </div>
+            <div id="historyContainer" class="history-container">
+                <div class="loading">Loading analysis history...</div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -392,10 +550,190 @@ HTML_TEMPLATE = """
         window.onload = function() {
             checkSystemStatus();
             setInterval(checkSystemStatus, 30000); // Check every 30 seconds
+            setupAutoComplete();
+            loadAnalysisHistory();
         };
 
         function setSymbol(symbol) {
             document.getElementById('symbol').value = symbol;
+            updateCompanyInfo(symbol);
+            hideAutocomplete();
+        }
+
+        // Auto-complete functionality
+        function setupAutoComplete() {
+            const symbolInput = document.getElementById('symbol');
+            const autocompleteDiv = document.getElementById('autocomplete');
+            let searchTimeout;
+
+            symbolInput.addEventListener('input', function() {
+                const query = this.value.trim().toUpperCase();
+                
+                // Clear previous timeout
+                if (searchTimeout) clearTimeout(searchTimeout);
+                
+                if (query.length === 0) {
+                    hideAutocomplete();
+                    document.getElementById('companyInfo').textContent = '';
+                    return;
+                }
+
+                // Update company info for exact matches
+                updateCompanyInfo(query);
+
+                // Debounce search
+                searchTimeout = setTimeout(() => {
+                    if (query.length >= 1) {
+                        searchCompanies(query);
+                    } else {
+                        hideAutocomplete();
+                    }
+                }, 300);
+            });
+
+            symbolInput.addEventListener('blur', function() {
+                // Hide autocomplete after a short delay to allow clicks
+                setTimeout(hideAutocomplete, 200);
+            });
+
+            symbolInput.addEventListener('focus', function() {
+                const query = this.value.trim().toUpperCase();
+                if (query.length >= 1) {
+                    searchCompanies(query);
+                }
+            });
+        }
+
+        async function updateCompanyInfo(symbol) {
+            if (symbol.length === 0) {
+                document.getElementById('companyInfo').textContent = '';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/company-info/${symbol}`);
+                const data = await response.json();
+                
+                if (data.found) {
+                    document.getElementById('companyInfo').textContent = data.company_name;
+                } else {
+                    document.getElementById('companyInfo').textContent = '';
+                }
+            } catch (error) {
+                document.getElementById('companyInfo').textContent = '';
+            }
+        }
+
+        async function searchCompanies(query) {
+            try {
+                const response = await fetch(`/api/search-companies/${query}`);
+                const data = await response.json();
+                showAutocomplete(data.matches);
+            } catch (error) {
+                console.error('Search error:', error);
+                hideAutocomplete();
+            }
+        }
+
+        function showAutocomplete(matches) {
+            const autocompleteDiv = document.getElementById('autocomplete');
+            
+            if (matches.length === 0) {
+                hideAutocomplete();
+                return;
+            }
+
+            autocompleteDiv.innerHTML = '';
+            matches.forEach(match => {
+                const item = document.createElement('div');
+                item.className = 'autocomplete-item';
+                item.innerHTML = `
+                    <div class="autocomplete-symbol">${match.symbol}</div>
+                    <div class="autocomplete-company">${match.company_name}</div>
+                `;
+                item.onclick = () => selectSymbol(match.symbol);
+                autocompleteDiv.appendChild(item);
+            });
+
+            autocompleteDiv.style.display = 'block';
+        }
+
+        function hideAutocomplete() {
+            document.getElementById('autocomplete').style.display = 'none';
+        }
+
+        function selectSymbol(symbol) {
+            document.getElementById('symbol').value = symbol;
+            updateCompanyInfo(symbol);
+            hideAutocomplete();
+        }
+
+        // Analysis History functionality
+        async function loadAnalysisHistory() {
+            const historyContainer = document.getElementById('historyContainer');
+            historyContainer.innerHTML = '<div class="loading">Loading analysis history...</div>';
+
+            try {
+                const response = await fetch('/api/history');
+                const data = await response.json();
+                
+                if (data.analyses && data.analyses.length > 0) {
+                    displayAnalysisHistory(data.analyses);
+                } else {
+                    historyContainer.innerHTML = '<div class="loading">No analysis history found. Run some analyses to see them here!</div>';
+                }
+            } catch (error) {
+                console.error('History loading error:', error);
+                historyContainer.innerHTML = '<div class="error">Failed to load analysis history</div>';
+            }
+        }
+
+        function displayAnalysisHistory(analyses) {
+            const historyContainer = document.getElementById('historyContainer');
+            historyContainer.innerHTML = '';
+
+            analyses.forEach(analysis => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                
+                const decision = analysis.decision || 'Unknown';
+                const decisionClass = decision.toLowerCase().includes('buy') ? 'buy' : 
+                                    decision.toLowerCase().includes('sell') ? 'sell' : 
+                                    decision.toLowerCase().includes('hold') ? 'hold' : '';
+                
+                const completedAt = analysis.completed_at ? new Date(analysis.completed_at) : null;
+                const timeStr = completedAt ? completedAt.toLocaleString() : 'Unknown time';
+                
+                historyItem.innerHTML = `
+                    <div class="history-header">
+                        <div class="history-symbol">${analysis.symbol}</div>
+                        <div class="history-decision ${decisionClass}">${decision}</div>
+                    </div>
+                    <div class="history-meta">
+                        <div class="history-date">📅 ${timeStr}</div>
+                        <div>📊 Analysis Date: ${analysis.date}</div>
+                    </div>
+                `;
+
+                historyItem.onclick = () => viewHistoryDetails(analysis);
+                historyContainer.appendChild(historyItem);
+            });
+        }
+
+        function viewHistoryDetails(analysis) {
+            // Re-run analysis for this symbol and date
+            document.getElementById('symbol').value = analysis.symbol;
+            document.getElementById('date').value = analysis.date;
+            updateCompanyInfo(analysis.symbol);
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Optionally show a message
+            const analysisProgress = document.getElementById('analysisProgress');
+            if (analysisProgress) {
+                analysisProgress.textContent = `Click "Start Analysis" to re-run analysis for ${analysis.symbol}`;
+            }
         }
 
         async function checkSystemStatus() {

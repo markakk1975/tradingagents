@@ -341,6 +341,159 @@ def list_agents():
         }
     })
 
+@app.route('/history')
+def analysis_history():
+    """Get analysis history with completed analyses"""
+    completed_analyses = []
+    
+    for analysis_id, data in analysis_progress.items():
+        if data.get('status') == 'completed':
+            completed_analyses.append({
+                'analysis_id': analysis_id,
+                'symbol': data.get('symbol'),
+                'date': data.get('date'),
+                'decision': data.get('decision', 'Unknown'),
+                'started_at': data.get('started_at'),
+                'completed_at': data.get('completed_at'),
+                'messages': data.get('messages', [])
+            })
+    
+    # Sort by completion time (most recent first)
+    completed_analyses.sort(key=lambda x: x.get('completed_at', ''), reverse=True)
+    
+    return jsonify({
+        'total_count': len(completed_analyses),
+        'analyses': completed_analyses[:20]  # Limit to last 20 analyses
+    })
+
+@app.route('/company-info/<symbol>')
+def get_company_info(symbol):
+    """Get company name and info for a stock symbol"""
+    # Stock symbol to company name mapping
+    company_names = {
+        'AAPL': 'Apple Inc.',
+        'GOOGL': 'Alphabet Inc.',
+        'GOOG': 'Alphabet Inc.',
+        'MSFT': 'Microsoft Corporation',
+        'AMZN': 'Amazon.com Inc.',
+        'TSLA': 'Tesla Inc.',
+        'META': 'Meta Platforms Inc.',
+        'NVDA': 'NVIDIA Corporation',
+        'NFLX': 'Netflix Inc.',
+        'ADBE': 'Adobe Inc.',
+        'CRM': 'Salesforce Inc.',
+        'ORCL': 'Oracle Corporation',
+        'INTC': 'Intel Corporation',
+        'AMD': 'Advanced Micro Devices Inc.',
+        'PYPL': 'PayPal Holdings Inc.',
+        'UBER': 'Uber Technologies Inc.',
+        'SPOT': 'Spotify Technology S.A.',
+        'SQ': 'Block Inc.',
+        'ROKU': 'Roku Inc.',
+        'ZOOM': 'Zoom Video Communications Inc.',
+        'SHOP': 'Shopify Inc.',
+        'TWTR': 'Twitter Inc.',
+        'SNAP': 'Snap Inc.',
+        'PINS': 'Pinterest Inc.',
+        'DOCU': 'DocuSign Inc.',
+        'WORK': 'Slack Technologies Inc.',
+        'PLTR': 'Palantir Technologies Inc.',
+        'SNOW': 'Snowflake Inc.',
+        'CRWD': 'CrowdStrike Holdings Inc.',
+        'ZM': 'Zoom Video Communications Inc.',
+        'TEAM': 'Atlassian Corporation',
+        'NOW': 'ServiceNow Inc.',
+        'WDAY': 'Workday Inc.',
+        'DDOG': 'Datadog Inc.',
+        'NET': 'Cloudflare Inc.',
+        'OKTA': 'Okta Inc.',
+        'MDB': 'MongoDB Inc.',
+        'SPLK': 'Splunk Inc.',
+        'VEEV': 'Veeva Systems Inc.',
+        'ZS': 'Zscaler Inc.'
+    }
+    
+    symbol = symbol.upper()
+    company_name = company_names.get(symbol)
+    
+    if company_name:
+        return jsonify({
+            'symbol': symbol,
+            'company_name': company_name,
+            'found': True
+        })
+    else:
+        return jsonify({
+            'symbol': symbol,
+            'company_name': None,
+            'found': False
+        })
+
+@app.route('/search-companies/<query>')
+def search_companies(query):
+    """Search companies by partial ticker symbol or name"""
+    # Stock symbol to company name mapping (extended)
+    company_names = {
+        'AAPL': 'Apple Inc.',
+        'GOOGL': 'Alphabet Inc.',
+        'GOOG': 'Alphabet Inc.',
+        'MSFT': 'Microsoft Corporation',
+        'AMZN': 'Amazon.com Inc.',
+        'TSLA': 'Tesla Inc.',
+        'META': 'Meta Platforms Inc.',
+        'NVDA': 'NVIDIA Corporation',
+        'NFLX': 'Netflix Inc.',
+        'ADBE': 'Adobe Inc.',
+        'CRM': 'Salesforce Inc.',
+        'ORCL': 'Oracle Corporation',
+        'INTC': 'Intel Corporation',
+        'AMD': 'Advanced Micro Devices Inc.',
+        'PYPL': 'PayPal Holdings Inc.',
+        'UBER': 'Uber Technologies Inc.',
+        'SPOT': 'Spotify Technology S.A.',
+        'SQ': 'Block Inc.',
+        'ROKU': 'Roku Inc.',
+        'ZOOM': 'Zoom Video Communications Inc.',
+        'SHOP': 'Shopify Inc.',
+        'TWTR': 'Twitter Inc.',
+        'SNAP': 'Snap Inc.',
+        'PINS': 'Pinterest Inc.',
+        'DOCU': 'DocuSign Inc.',
+        'WORK': 'Slack Technologies Inc.',
+        'PLTR': 'Palantir Technologies Inc.',
+        'SNOW': 'Snowflake Inc.',
+        'CRWD': 'CrowdStrike Holdings Inc.',
+        'ZM': 'Zoom Video Communications Inc.',
+        'TEAM': 'Atlassian Corporation',
+        'NOW': 'ServiceNow Inc.',
+        'WDAY': 'Workday Inc.',
+        'DDOG': 'Datadog Inc.',
+        'NET': 'Cloudflare Inc.',
+        'OKTA': 'Okta Inc.',
+        'MDB': 'MongoDB Inc.',
+        'SPLK': 'Splunk Inc.',
+        'VEEV': 'Veeva Systems Inc.',
+        'ZS': 'Zscaler Inc.'
+    }
+    
+    query = query.upper()
+    matches = []
+    
+    for symbol, company_name in company_names.items():
+        if symbol.startswith(query) or query in company_name.upper():
+            matches.append({
+                'symbol': symbol,
+                'company_name': company_name
+            })
+    
+    # Sort by symbol length (exact matches first)
+    matches.sort(key=lambda x: (len(x['symbol']), x['symbol']))
+    
+    return jsonify({
+        'query': query,
+        'matches': matches[:10]  # Limit to 10 results
+    })
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8001))
     debug_mode = os.getenv("FLASK_ENV") == "development"
