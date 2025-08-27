@@ -15,7 +15,7 @@ import time
 app = Flask(__name__)
 
 # Configuration
-TRADINGAGENTS_API_URL = os.getenv("TRADINGAGENTS_API_URL", "https://stock-prediction-model-x5mr.onrender.com")
+TRADINGAGENTS_API_URL = os.getenv("TRADINGAGENTS_API_URL", "http://localhost:8001")
 DASHBOARD_PORT = int(os.getenv("DASHBOARD_PORT", 8002))
 
 # Global storage for analysis results
@@ -428,7 +428,6 @@ HTML_TEMPLATE = """
             }
         }
 
-        let currentAnalysisId = null;
         let progressCheckInterval = null;
 
         async function startAnalysis(event) {
