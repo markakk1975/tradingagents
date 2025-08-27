@@ -293,7 +293,7 @@ def analyze_stock():
         
         # Wait for result with timeout (increased for complex analyses)
         # Check progress every 15 seconds and update user
-        total_timeout = 300  # 5 minutes total
+        total_timeout = 480  # 8 minutes total
         check_interval = 15  # seconds
         elapsed = 0
         
@@ -309,7 +309,7 @@ def analyze_stock():
         if analysis_thread.is_alive():
             # Analysis is still running, it timed out
             analysis_progress[analysis_id]["status"] = "timeout"
-            analysis_progress[analysis_id]["messages"].append("⏰ Analysis timed out after 5 minutes")
+            analysis_progress[analysis_id]["messages"].append("⏰ Analysis timed out after 8 minutes")
             return jsonify({
                 "error": "Analysis timeout", 
                 "message": "Analysis took too long and was cancelled",

@@ -19,7 +19,7 @@ services:
       - key: QUICK_THINK_LLM
         value: gpt-4o-mini
       - key: MAX_DEBATE_ROUNDS
-        value: 1
+        value: 0
       - key: ONLINE_TOOLS
         value: false
       - key: OPENAI_API_KEY
