@@ -30,6 +30,87 @@ ta_graph = None
 # Global progress tracking
 analysis_progress = {}
 
+def clean_analysis_result(result):
+    """Extract clean, readable text from LangChain analysis results"""
+    if not result:
+        return None
+    
+    try:
+        # If it's a dictionary with messages
+        if isinstance(result, dict) and 'messages' in result:
+            clean_text = []
+            
+            # Extract content from messages
+            if result.get('messages'):
+                for msg in result['messages']:
+                    if hasattr(msg, 'content'):
+                        clean_text.append(msg.content)
+                    elif isinstance(msg, dict) and 'content' in msg:
+                        clean_text.append(msg['content'])
+            
+            # Add other relevant fields
+            for key in ['market_report', 'sentiment_report', 'news_report', 'fundamentals_report']:
+                if key in result and result[key]:
+                    clean_text.append(f"\n\n## {key.replace('_', ' ').title()}\n{result[key]}")
+            
+            # Add investment debate if available
+            if 'investment_debate_state' in result and result['investment_debate_state']:
+                debate = result['investment_debate_state']
+                if isinstance(debate, dict) and 'judge_decision' in debate:
+                    clean_text.append(f"\n\n## Investment Decision\n{debate['judge_decision']}")
+            
+            return '\n'.join(clean_text)
+        
+        # If it's just a string, return as-is
+        elif isinstance(result, str):
+            return result
+        
+        # Otherwise, try to extract meaningful content
+        else:
+            # Convert to string but try to extract content if it has it
+            if hasattr(result, 'content'):
+                return result.content
+            else:
+                return str(result)
+                
+    except Exception as e:
+        logger.warning(f"Failed to clean analysis result: {e}")
+        return str(result)
+
+def clean_decision_result(decision):
+    """Extract clean decision text from LangChain decision objects"""
+    if not decision:
+        return None
+    
+    try:
+        # If it has content attribute, extract it
+        if hasattr(decision, 'content'):
+            content = decision.content
+            # Extract just the final decision if it contains "FINAL TRANSACTION PROPOSAL"
+            if "FINAL TRANSACTION PROPOSAL" in content:
+                lines = content.split('\n')
+                for line in lines:
+                    if "FINAL TRANSACTION PROPOSAL" in line:
+                        return line.split(":")[-1].strip()
+            return content
+        
+        # If it's a string, look for the decision
+        elif isinstance(decision, str):
+            if "FINAL TRANSACTION PROPOSAL" in decision:
+                lines = decision.split('\n')
+                for line in lines:
+                    if "FINAL TRANSACTION PROPOSAL" in line:
+                        return line.split(":")[-1].strip()
+            return decision
+        
+        # Otherwise convert to string
+        else:
+            return str(decision)
+            
+    except Exception as e:
+        logger.warning(f"Failed to clean decision result: {e}")
+        return str(decision)
+
 def initialize_trading_agents():
     """Initialize TradingAgents with environment configuration"""
     global ta_graph
@@ -173,9 +254,9 @@ def analyze_stock():
         analysis_progress[analysis_id]["completed_at"] = datetime.now().isoformat()
         analysis_progress[analysis_id]["messages"].append("✅ Analysis completed successfully!")
         
-        # Convert result and decision to JSON-serializable format
-        serializable_result = str(result) if result else None
-        serializable_decision = str(decision) if decision else None
+        # Convert result and decision to clean, readable format
+        serializable_result = clean_analysis_result(result)
+        serializable_decision = clean_decision_result(decision)
         
         # Store results in progress for dashboard access
         analysis_progress[analysis_id]["result"] = serializable_result
