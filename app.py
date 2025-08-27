@@ -195,10 +195,19 @@ def analyze_stock():
     global ta_graph
     
     if ta_graph is None:
-        return jsonify({
-            "error": "TradingAgents not initialized",
-            "message": "System is still starting up. Please try again in a few moments."
-        }), 503
+        # Try to initialize again
+        logger.info("🔄 Attempting to re-initialize TradingAgents...")
+        if not initialize_trading_agents():
+            return jsonify({
+                "error": "TradingAgents initialization failed",
+                "message": "System cannot be initialized. Please check server logs and try again later."
+            }), 503
+        
+        if ta_graph is None:
+            return jsonify({
+                "error": "TradingAgents not initialized",
+                "message": "System is still starting up. Please try again in a few moments."
+            }), 503
     
     try:
         # Get parameters from request
@@ -245,7 +254,55 @@ def analyze_stock():
         analysis_progress[analysis_id]["current_agent"] = "Sentiment Analyst"
         analysis_progress[analysis_id]["messages"].append("😊 Sentiment analysis running...")
         
-        result, decision = ta_graph.propagate(symbol, date)
+        # Run analysis with timeout protection using threading
+        import threading
+        import queue
+        
+        result_queue = queue.Queue()
+        analysis_error = None
+        
+        def run_analysis():
+            try:
+                result, decision = ta_graph.propagate(symbol, date)
+                result_queue.put(('success', result, decision))
+            except Exception as e:
+                result_queue.put(('error', str(e), None))
+        
+        # Start analysis in background thread
+        analysis_thread = threading.Thread(target=run_analysis)
+        analysis_thread.daemon = True
+        analysis_thread.start()
+        
+        # Wait for result with timeout
+        analysis_thread.join(timeout=45)  # 45 second timeout
+        
+        if analysis_thread.is_alive():
+            # Analysis is still running, it timed out
+            analysis_progress[analysis_id]["status"] = "timeout"
+            analysis_progress[analysis_id]["messages"].append("⏰ Analysis timed out after 45 seconds")
+            return jsonify({
+                "error": "Analysis timeout", 
+                "message": "Analysis took too long and was cancelled",
+                "analysis_id": analysis_id,
+                "symbol": symbol,
+                "date": date
+            }), 408
+        
+        # Get result from queue
+        try:
+            status, result, decision = result_queue.get_nowait()
+            if status == 'error':
+                raise Exception(result)
+        except queue.Empty:
+            analysis_progress[analysis_id]["status"] = "failed"
+            analysis_progress[analysis_id]["messages"].append("❌ Analysis failed unexpectedly")
+            return jsonify({
+                "error": "Analysis failed",
+                "message": "Analysis completed but no result was returned",
+                "analysis_id": analysis_id,
+                "symbol": symbol,
+                "date": date
+            }), 500
         
         # Update progress - Analysis complete
         analysis_progress[analysis_id]["status"] = "completed"
