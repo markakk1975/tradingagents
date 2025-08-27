@@ -704,6 +704,7 @@ def get_company_info(symbol):
         'COST': 'Costco Wholesale Corp.',
         'AVGO': 'Broadcom Inc.',
         'SHOP': 'Shopify Inc.',
+        'GEV': 'GE Vernova Inc.',
         'TWTR': 'Twitter Inc.',
         'SNAP': 'Snap Inc.',
         'PINS': 'Pinterest Inc.',
@@ -786,6 +787,7 @@ def search_companies(query):
         'COST': 'Costco Wholesale Corp.',
         'AVGO': 'Broadcom Inc.',
         'SHOP': 'Shopify Inc.',
+        'GEV': 'GE Vernova Inc.',
         'TWTR': 'Twitter Inc.',
         'SNAP': 'Snap Inc.',
         'PINS': 'Pinterest Inc.',
@@ -807,22 +809,60 @@ def search_companies(query):
         'ZS': 'Zscaler Inc.'
     }
     
-    query = query.upper()
     matches = []
+    query_upper = query.upper()
     
+    # Search in hardcoded list first
     for symbol, company_name in company_names.items():
-        if symbol.startswith(query) or query in company_name.upper():
+        if symbol.startswith(query_upper) or query_upper in company_name.upper():
             matches.append({
                 'symbol': symbol,
                 'company_name': company_name
             })
+    
+    # If no matches found and online tools enabled, try FINNHUB API
+    if not matches and os.getenv("ONLINE_TOOLS", "true").lower() == "true":
+        try:
+            import finnhub
+            finnhub_api_key = os.getenv("FINNHUB_API_KEY")
+            
+            if finnhub_api_key and finnhub_api_key != "your_finnhub_api_key_here":
+                finnhub_client = finnhub.Client(api_key=finnhub_api_key)
+                
+                # Search for companies using FINNHUB
+                search_results = finnhub_client.symbol_lookup(query_upper)
+                
+                if search_results and 'result' in search_results:
+                    for result in search_results['result'][:10]:
+                        if result.get('symbol') and result.get('description'):
+                            matches.append({
+                                'symbol': result['symbol'],
+                                'company_name': result['description']
+                            })
+            else:
+                # Fallback: check if query looks like a stock symbol and allow it
+                if len(query_upper) <= 6 and query_upper.isalpha():
+                    matches.append({
+                        'symbol': query_upper,
+                        'company_name': f'{query_upper} (Symbol lookup - configure FINNHUB API for company name)'
+                    })
+                        
+        except Exception as e:
+            logger.error(f"FINNHUB API search failed: {e}")
+            # Fallback: allow symbol if it looks valid
+            if len(query_upper) <= 6 and query_upper.isalpha():
+                matches.append({
+                    'symbol': query_upper,
+                    'company_name': f'{query_upper} (Lookup failed - check FINNHUB API key)'
+                })
     
     # Sort by symbol length (exact matches first)
     matches.sort(key=lambda x: (len(x['symbol']), x['symbol']))
     
     return jsonify({
         'query': query,
-        'matches': matches[:10]  # Limit to 10 results
+        'matches': matches[:10],  # Limit to 10 results
+        'source': 'hardcoded+finnhub' if matches else 'none'
     })
 
 if __name__ == "__main__":
