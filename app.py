@@ -341,7 +341,7 @@ def list_agents():
         }
     })
 
-@app.route('/history')
+@app.route('/api/history')
 def analysis_history():
     """Get analysis history with completed analyses"""
     completed_analyses = []
@@ -366,7 +366,7 @@ def analysis_history():
         'analyses': completed_analyses[:20]  # Limit to last 20 analyses
     })
 
-@app.route('/company-info/<symbol>')
+@app.route('/api/company-info/<symbol>')
 def get_company_info(symbol):
     """Get company name and info for a stock symbol"""
     # Stock symbol to company name mapping
@@ -429,7 +429,7 @@ def get_company_info(symbol):
             'found': False
         })
 
-@app.route('/search-companies/<query>')
+@app.route('/api/search-companies/<query>')
 def search_companies(query):
     """Search companies by partial ticker symbol or name"""
     # Stock symbol to company name mapping (extended)
