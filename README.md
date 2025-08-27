@@ -211,3 +211,4 @@ Please reference our work if you find *TradingAgents* provides you with some hel
       url={https://arxiv.org/abs/2412.20138}, 
 }
 ```
+# Last updated: miércoles, 27 de agosto de 2025, 22:04:57 CEST
