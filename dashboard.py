@@ -438,6 +438,35 @@ HTML_TEMPLATE = """
             gap: 4px;
         }
 
+        .history-duration {
+            color: #2ecc71;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+
+        .history-actions {
+            margin-top: 10px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .download-btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .download-btn:hover {
+            background: linear-gradient(45deg, #2980b9, #3498db);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(52, 152, 219, 0.3);
+        }
+
         /* Mobile Responsiveness */
         @media (max-width: 768px) {
             body {
@@ -590,6 +619,16 @@ HTML_TEMPLATE = """
             
             .history-item {
                 padding: 10px;
+            }
+
+            .history-actions {
+                justify-content: center;
+                margin-top: 8px;
+            }
+
+            .download-btn {
+                font-size: 14px;
+                padding: 8px 16px;
             }
         }
     </style>
@@ -860,6 +899,7 @@ HTML_TEMPLATE = """
                 
                 const completedAt = analysis.completed_at ? new Date(analysis.completed_at) : null;
                 const timeStr = completedAt ? completedAt.toLocaleString() : 'Unknown time';
+                const duration = analysis.duration_formatted || 'Unknown duration';
                 
                 historyItem.innerHTML = `
                     <div class="history-header">
@@ -869,6 +909,12 @@ HTML_TEMPLATE = """
                     <div class="history-meta">
                         <div class="history-date">📅 ${timeStr}</div>
                         <div>📊 Analysis Date: ${analysis.date}</div>
+                        <div class="history-duration">⏱️ Duration: ${duration}</div>
+                    </div>
+                    <div class="history-actions">
+                        <button class="download-btn" onclick="downloadAnalysis('${analysis.analysis_id}', '${analysis.symbol}')">
+                            📥 Download Summary
+                        </button>
                     </div>
                 `;
 
@@ -1184,6 +1230,20 @@ HTML_TEMPLATE = """
             document.getElementById('analysisProgress').textContent = 'Analysis Failed';
             document.getElementById('activeAgents').textContent = '0 / 7 agents';
         }
+
+        // Download analysis summary
+        function downloadAnalysis(analysisId, symbol) {
+            event.stopPropagation(); // Prevent triggering the history item click
+            
+            // Create download link
+            const downloadUrl = `/api/download/${analysisId}`;
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = `analysis_${symbol}_${analysisId}.txt`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
 </body>
 </html>
@@ -1289,6 +1349,22 @@ def search_companies_proxy(query):
         return response.json(), response.status_code
     except Exception as e:
         return {"error": "Company search failed", "message": str(e)}, 500
+
+@app.route('/api/download/<analysis_id>')
+def download_analysis_proxy(analysis_id):
+    """Proxy download request to TradingAgents API"""
+    try:
+        response = requests.get(f"{TRADINGAGENTS_API_URL}/api/download/{analysis_id}", timeout=30)
+        
+        # Forward the file download response
+        from flask import Response
+        return Response(
+            response.content,
+            status=response.status_code,
+            headers=dict(response.headers)
+        )
+    except Exception as e:
+        return {"error": "Download failed", "message": str(e)}, 500
 
 if __name__ == "__main__":
     print(f"🚀 Starting TradingAgents Dashboard on port {DASHBOARD_PORT}...")

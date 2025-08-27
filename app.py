@@ -338,7 +338,15 @@ def analyze_stock():
         analysis_progress[analysis_id]["status"] = "completed"
         analysis_progress[analysis_id]["progress"] = 100
         analysis_progress[analysis_id]["current_agent"] = "Completed"
-        analysis_progress[analysis_id]["completed_at"] = datetime.now().isoformat()
+        completed_time = datetime.now()
+        analysis_progress[analysis_id]["completed_at"] = completed_time.isoformat()
+        
+        # Calculate duration
+        started_time = datetime.fromisoformat(analysis_progress[analysis_id]["started_at"])
+        duration_seconds = (completed_time - started_time).total_seconds()
+        analysis_progress[analysis_id]["duration_seconds"] = duration_seconds
+        analysis_progress[analysis_id]["duration_formatted"] = f"{int(duration_seconds//60)}m {int(duration_seconds%60)}s"
+        
         analysis_progress[analysis_id]["messages"].append("✅ Analysis completed successfully!")
         
         # Convert result and decision to clean, readable format
@@ -443,6 +451,8 @@ def analysis_history():
                     'decision': data.get('decision', 'Unknown'),
                     'started_at': data.get('started_at'),
                     'completed_at': data.get('completed_at'),
+                    'duration_seconds': data.get('duration_seconds', 0),
+                    'duration_formatted': data.get('duration_formatted', 'Unknown'),
                     'messages': data.get('messages', [])
                 })
         
@@ -459,6 +469,8 @@ def analysis_history():
                     'decision': 'BUY',
                     'started_at': '2025-08-27T10:00:00',
                     'completed_at': '2025-08-27T10:05:00',
+                    'duration_seconds': 300,
+                    'duration_formatted': '5m 0s',
                     'messages': ['Sample analysis - run a real analysis to see your history']
                 }
             ]
@@ -470,7 +482,7 @@ def analysis_history():
         
         return jsonify({
             'total_count': len(completed_analyses),
-            'analyses': completed_analyses[:20]  # Limit to last 20 analyses
+            'analyses': completed_analyses[:50]  # Limit to last 50 analyses
         })
         
     except Exception as e:
@@ -480,6 +492,58 @@ def analysis_history():
             'message': str(e),
             'total_count': 0,
             'analyses': []
+        }), 500
+
+@app.route('/api/download/<analysis_id>')
+def download_analysis(analysis_id):
+    """Download analysis summary as text file"""
+    try:
+        if analysis_id not in analysis_progress:
+            return jsonify({
+                'error': 'Analysis not found',
+                'analysis_id': analysis_id
+            }), 404
+            
+        data = analysis_progress[analysis_id]
+        
+        # Create analysis summary text
+        summary = f"""TradingAgents Analysis Summary
+{'='*50}
+
+Analysis ID: {analysis_id}
+Symbol: {data.get('symbol', 'Unknown')}
+Analysis Date: {data.get('date', 'Unknown')}
+Started: {data.get('started_at', 'Unknown')}
+Completed: {data.get('completed_at', 'Unknown')}
+Duration: {data.get('duration_formatted', 'Unknown')}
+Decision: {data.get('decision', 'Unknown')}
+
+Analysis Progress:
+{'-'*20}
+"""
+        
+        # Add messages
+        messages = data.get('messages', [])
+        for i, message in enumerate(messages, 1):
+            summary += f"{i}. {message}\n"
+        
+        # Add analysis result if available
+        if 'result' in data and data['result']:
+            summary += f"\nDetailed Analysis:\n{'-'*20}\n{data['result']}\n"
+            
+        # Return as downloadable file
+        from flask import Response
+        return Response(
+            summary,
+            mimetype='text/plain',
+            headers={'Content-Disposition': f'attachment; filename=analysis_{data.get("symbol", "unknown")}_{analysis_id}.txt'}
+        )
+        
+    except Exception as e:
+        logger.error(f"❌ Download error: {e}")
+        return jsonify({
+            'error': 'Download failed',
+            'message': str(e)
         }), 500
 
 @app.route('/api/company-info/<symbol>')
