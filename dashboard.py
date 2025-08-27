@@ -1137,6 +1137,13 @@ HTML_TEMPLATE = """
                             document.getElementById('activeAgents').textContent = 'All agents finished';
                             document.getElementById('progressFill').style.width = '100%';
                             
+                            // Reset all agent cards to Ready state
+                            const agentCards = document.querySelectorAll('.agent-card');
+                            agentCards.forEach(card => {
+                                card.classList.remove('active');
+                                card.querySelector('p').textContent = 'Ready';
+                            });
+                            
                             // Show results from progress data
                             if (progressData.result && progressData.decision) {
                                 const result = {
@@ -1227,6 +1234,13 @@ HTML_TEMPLATE = """
         function showResults(result) {
             document.getElementById('resultsSection').style.display = 'block';
             
+            // Reset all agent cards to Ready state when showing results
+            const agentCards = document.querySelectorAll('.agent-card');
+            agentCards.forEach(card => {
+                card.classList.remove('active');
+                card.querySelector('p').textContent = 'Ready';
+            });
+            
             let decisionClass = 'decision-card';
             if (result.decision && result.decision.toLowerCase().includes('sell')) {
                 decisionClass += ' sell';
@@ -1259,6 +1273,14 @@ HTML_TEMPLATE = """
 
         function showError(message) {
             document.getElementById('resultsSection').style.display = 'block';
+            
+            // Reset all agent cards to Ready state on error
+            const agentCards = document.querySelectorAll('.agent-card');
+            agentCards.forEach(card => {
+                card.classList.remove('active');
+                card.querySelector('p').textContent = 'Ready';
+            });
+            
             document.getElementById('results').innerHTML = `
                 <div class="error">
                     <h3>❌ Analysis Error</h3>
