@@ -437,6 +437,161 @@ HTML_TEMPLATE = """
             align-items: center;
             gap: 4px;
         }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 15px;
+                border-radius: 15px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+                margin-bottom: 5px;
+            }
+            
+            .header p {
+                font-size: 1em;
+            }
+            
+            .analysis-form {
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+            
+            .form-group {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+            
+            .form-group input {
+                min-width: auto;
+                width: 100%;
+            }
+            
+            .btn {
+                width: 100%;
+                padding: 15px;
+                font-size: 18px;
+            }
+            
+            .status-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .status-card {
+                padding: 15px;
+            }
+            
+            .status-card h3 {
+                font-size: 1em;
+            }
+            
+            .popular-stocks {
+                justify-content: center;
+            }
+            
+            .stock-btn {
+                padding: 8px 12px;
+                font-size: 14px;
+                min-width: 60px;
+            }
+            
+            .results-section {
+                padding: 15px;
+            }
+            
+            .results-section h2 {
+                font-size: 1.3em;
+            }
+            
+            .history-section {
+                padding: 15px;
+            }
+            
+            .history-section h2 {
+                font-size: 1.3em;
+            }
+            
+            .history-item {
+                padding: 12px;
+            }
+            
+            .history-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+            
+            .history-symbol {
+                font-size: 1.1em;
+            }
+            
+            .history-decision {
+                font-size: 0.8em;
+                padding: 3px 8px;
+            }
+            
+            .autocomplete-dropdown {
+                max-height: 200px;
+            }
+            
+            .autocomplete-item {
+                padding: 12px;
+                font-size: 16px;
+            }
+
+            /* Mobile-specific improvements */
+            .header {
+                margin-bottom: 25px;
+                padding-bottom: 15px;
+            }
+            
+            .popular-stocks {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            
+            /* Improve touch targets */
+            input, button, .stock-btn, .history-item {
+                min-height: 44px; /* iOS/Android recommended minimum */
+            }
+            
+            /* Prevent zoom on input focus */
+            input {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.5em;
+            }
+            
+            .analysis-form {
+                padding: 15px;
+            }
+            
+            .stock-btn {
+                padding: 6px 10px;
+                font-size: 12px;
+                min-width: 50px;
+            }
+            
+            .status-card {
+                padding: 12px;
+            }
+            
+            .history-item {
+                padding: 10px;
+            }
+        }
     </style>
 </head>
 <body>
