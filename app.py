@@ -344,27 +344,56 @@ def list_agents():
 @app.route('/api/history')
 def analysis_history():
     """Get analysis history with completed analyses"""
-    completed_analyses = []
-    
-    for analysis_id, data in analysis_progress.items():
-        if data.get('status') == 'completed':
-            completed_analyses.append({
-                'analysis_id': analysis_id,
-                'symbol': data.get('symbol'),
-                'date': data.get('date'),
-                'decision': data.get('decision', 'Unknown'),
-                'started_at': data.get('started_at'),
-                'completed_at': data.get('completed_at'),
-                'messages': data.get('messages', [])
+    try:
+        completed_analyses = []
+        
+        for analysis_id, data in analysis_progress.items():
+            if data.get('status') == 'completed':
+                completed_analyses.append({
+                    'analysis_id': analysis_id,
+                    'symbol': data.get('symbol'),
+                    'date': data.get('date'),
+                    'decision': data.get('decision', 'Unknown'),
+                    'started_at': data.get('started_at'),
+                    'completed_at': data.get('completed_at'),
+                    'messages': data.get('messages', [])
+                })
+        
+        # Sort by completion time (most recent first)
+        completed_analyses.sort(key=lambda x: x.get('completed_at', ''), reverse=True)
+        
+        # If no completed analyses yet, return sample data to show how it works
+        if not completed_analyses:
+            sample_analyses = [
+                {
+                    'analysis_id': 'sample_001',
+                    'symbol': 'AAPL',
+                    'date': '2025-08-27',
+                    'decision': 'BUY',
+                    'started_at': '2025-08-27T10:00:00',
+                    'completed_at': '2025-08-27T10:05:00',
+                    'messages': ['Sample analysis - run a real analysis to see your history']
+                }
+            ]
+            return jsonify({
+                'total_count': len(sample_analyses),
+                'analyses': sample_analyses,
+                'is_sample': True
             })
-    
-    # Sort by completion time (most recent first)
-    completed_analyses.sort(key=lambda x: x.get('completed_at', ''), reverse=True)
-    
-    return jsonify({
-        'total_count': len(completed_analyses),
-        'analyses': completed_analyses[:20]  # Limit to last 20 analyses
-    })
+        
+        return jsonify({
+            'total_count': len(completed_analyses),
+            'analyses': completed_analyses[:20]  # Limit to last 20 analyses
+        })
+        
+    except Exception as e:
+        logger.error(f"❌ History endpoint error: {e}")
+        return jsonify({
+            'error': 'Failed to retrieve history',
+            'message': str(e),
+            'total_count': 0,
+            'analyses': []
+        }), 500
 
 @app.route('/api/company-info/<symbol>')
 def get_company_info(symbol):
