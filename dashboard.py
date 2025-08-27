@@ -448,6 +448,7 @@ HTML_TEMPLATE = """
             margin-top: 10px;
             display: flex;
             justify-content: flex-end;
+            gap: 8px;
         }
 
         .download-btn {
@@ -459,12 +460,22 @@ HTML_TEMPLATE = """
             font-size: 0.85em;
             cursor: pointer;
             transition: all 0.3s;
+            min-width: 60px;
         }
 
         .download-btn:hover {
             background: linear-gradient(45deg, #2980b9, #3498db);
             transform: translateY(-1px);
             box-shadow: 0 3px 8px rgba(52, 152, 219, 0.3);
+        }
+
+        .pdf-btn {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+
+        .pdf-btn:hover {
+            background: linear-gradient(45deg, #c0392b, #e74c3c);
+            box-shadow: 0 3px 8px rgba(231, 76, 60, 0.3);
         }
 
         /* Mobile Responsiveness */
@@ -627,8 +638,13 @@ HTML_TEMPLATE = """
             }
 
             .download-btn {
-                font-size: 14px;
-                padding: 8px 16px;
+                font-size: 12px;
+                padding: 6px 10px;
+                min-width: 50px;
+            }
+
+            .history-actions {
+                gap: 6px;
             }
         }
     </style>
@@ -913,7 +929,10 @@ HTML_TEMPLATE = """
                     </div>
                     <div class="history-actions">
                         <button class="download-btn" onclick="downloadAnalysis('${analysis.analysis_id}', '${analysis.symbol}')">
-                            📥 Download Summary
+                            📄 Text
+                        </button>
+                        <button class="download-btn pdf-btn" onclick="downloadAnalysisPDF('${analysis.analysis_id}', '${analysis.symbol}')">
+                            📑 PDF
                         </button>
                     </div>
                 `;
@@ -1231,7 +1250,7 @@ HTML_TEMPLATE = """
             document.getElementById('activeAgents').textContent = '0 / 7 agents';
         }
 
-        // Download analysis summary
+        // Download analysis summary (text)
         function downloadAnalysis(analysisId, symbol) {
             event.stopPropagation(); // Prevent triggering the history item click
             
@@ -1240,6 +1259,20 @@ HTML_TEMPLATE = """
             const link = document.createElement('a');
             link.href = downloadUrl;
             link.download = `analysis_${symbol}_${analysisId}.txt`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Download analysis summary (PDF)
+        function downloadAnalysisPDF(analysisId, symbol) {
+            event.stopPropagation(); // Prevent triggering the history item click
+            
+            // Create download link
+            const downloadUrl = `/api/download/${analysisId}/pdf`;
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = `analysis_${symbol}_${analysisId}.pdf`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -1365,6 +1398,22 @@ def download_analysis_proxy(analysis_id):
         )
     except Exception as e:
         return {"error": "Download failed", "message": str(e)}, 500
+
+@app.route('/api/download/<analysis_id>/pdf')
+def download_analysis_pdf_proxy(analysis_id):
+    """Proxy PDF download request to TradingAgents API"""
+    try:
+        response = requests.get(f"{TRADINGAGENTS_API_URL}/api/download/{analysis_id}/pdf", timeout=30)
+        
+        # Forward the PDF download response
+        from flask import Response
+        return Response(
+            response.content,
+            status=response.status_code,
+            headers=dict(response.headers)
+        )
+    except Exception as e:
+        return {"error": "PDF download failed", "message": str(e)}, 500
 
 if __name__ == "__main__":
     print(f"🚀 Starting TradingAgents Dashboard on port {DASHBOARD_PORT}...")

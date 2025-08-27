@@ -498,13 +498,26 @@ def analysis_history():
 def download_analysis(analysis_id):
     """Download analysis summary as text file"""
     try:
-        if analysis_id not in analysis_progress:
+        # Handle sample data
+        if analysis_id == 'sample_001':
+            data = {
+                'analysis_id': 'sample_001',
+                'symbol': 'AAPL',
+                'date': '2025-08-27',
+                'decision': 'BUY',
+                'started_at': '2025-08-27T10:00:00',
+                'completed_at': '2025-08-27T10:05:00',
+                'duration_formatted': '5m 0s',
+                'messages': ['Sample analysis - run a real analysis to see your history', 'This is a demo analysis summary'],
+                'result': 'Sample analysis result: Apple Inc. shows strong fundamentals with positive technical indicators suggesting a BUY recommendation based on current market conditions.'
+            }
+        elif analysis_id not in analysis_progress:
             return jsonify({
                 'error': 'Analysis not found',
                 'analysis_id': analysis_id
             }), 404
-            
-        data = analysis_progress[analysis_id]
+        else:
+            data = analysis_progress[analysis_id]
         
         # Create analysis summary text
         summary = f"""TradingAgents Analysis Summary
@@ -543,6 +556,106 @@ Analysis Progress:
         logger.error(f"❌ Download error: {e}")
         return jsonify({
             'error': 'Download failed',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/download/<analysis_id>/pdf')
+def download_analysis_pdf(analysis_id):
+    """Download analysis summary as PDF file"""
+    try:
+        # Handle sample data
+        if analysis_id == 'sample_001':
+            data = {
+                'analysis_id': 'sample_001',
+                'symbol': 'AAPL',
+                'date': '2025-08-27',
+                'decision': 'BUY',
+                'started_at': '2025-08-27T10:00:00',
+                'completed_at': '2025-08-27T10:05:00',
+                'duration_formatted': '5m 0s',
+                'messages': ['Sample analysis - run a real analysis to see your history', 'This is a demo analysis summary'],
+                'result': 'Sample analysis result: Apple Inc. shows strong fundamentals with positive technical indicators suggesting a BUY recommendation based on current market conditions.'
+            }
+        elif analysis_id not in analysis_progress:
+            return jsonify({
+                'error': 'Analysis not found',
+                'analysis_id': analysis_id
+            }), 404
+        else:
+            data = analysis_progress[analysis_id]
+        
+        # Generate PDF
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from io import BytesIO
+        
+        # Create PDF in memory
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+        
+        # Get styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            textColor='darkblue',
+            spaceAfter=30,
+            alignment=1  # Center
+        )
+        
+        # Build PDF content
+        story = []
+        
+        # Title
+        story.append(Paragraph("TradingAgents Analysis Summary", title_style))
+        story.append(Spacer(1, 12))
+        
+        # Analysis details
+        details = f"""
+        <b>Analysis ID:</b> {analysis_id}<br/>
+        <b>Symbol:</b> {data.get('symbol', 'Unknown')}<br/>
+        <b>Analysis Date:</b> {data.get('date', 'Unknown')}<br/>
+        <b>Started:</b> {data.get('started_at', 'Unknown')}<br/>
+        <b>Completed:</b> {data.get('completed_at', 'Unknown')}<br/>
+        <b>Duration:</b> {data.get('duration_formatted', 'Unknown')}<br/>
+        <b>Decision:</b> <b>{data.get('decision', 'Unknown')}</b>
+        """
+        story.append(Paragraph(details, styles['Normal']))
+        story.append(Spacer(1, 20))
+        
+        # Analysis Progress
+        story.append(Paragraph("Analysis Progress:", styles['Heading2']))
+        messages = data.get('messages', [])
+        for i, message in enumerate(messages, 1):
+            story.append(Paragraph(f"{i}. {message}", styles['Normal']))
+            story.append(Spacer(1, 6))
+        
+        story.append(Spacer(1, 20))
+        
+        # Detailed Analysis
+        if 'result' in data and data['result']:
+            story.append(Paragraph("Detailed Analysis:", styles['Heading2']))
+            story.append(Paragraph(str(data['result']), styles['Normal']))
+        
+        # Build PDF
+        doc.build(story)
+        buffer.seek(0)
+        
+        # Return PDF file
+        from flask import Response
+        return Response(
+            buffer.read(),
+            mimetype='application/pdf',
+            headers={'Content-Disposition': f'attachment; filename=analysis_{data.get("symbol", "unknown")}_{analysis_id}.pdf'}
+        )
+        
+    except Exception as e:
+        logger.error(f"❌ PDF Download error: {e}")
+        return jsonify({
+            'error': 'PDF download failed',
             'message': str(e)
         }), 500
 

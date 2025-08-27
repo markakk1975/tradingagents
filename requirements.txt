@@ -26,3 +26,4 @@ langchain_anthropic
 langchain-google-genai
 flask>=3.0.0
 gunicorn
+reportlab>=4.0.0
