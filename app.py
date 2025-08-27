@@ -9,6 +9,10 @@ import logging
 from flask import Flask, jsonify, request
 from datetime import datetime
 import traceback
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(
@@ -142,32 +146,48 @@ def analyze_stock():
         analysis_progress[analysis_id]["current_agent"] = "Multi-Agent System"
         analysis_progress[analysis_id]["messages"].append(f"📊 Initializing analysis for {symbol}")
         
-        # Run the multi-agent analysis
-        logger.info(f"📈 Running multi-agent propagation for {symbol}")
-        analysis_progress[analysis_id]["progress"] = 20
-        analysis_progress[analysis_id]["messages"].append("🤖 Activating all agents...")
+        # Start background analysis
+        import threading
+        def run_analysis():
+            try:
+                # Run the multi-agent analysis
+                logger.info(f"📈 Running multi-agent propagation for {symbol}")
+                analysis_progress[analysis_id]["progress"] = 20
+                analysis_progress[analysis_id]["messages"].append("🤖 Activating all agents...")
+                
+                result, decision = ta_graph.propagate(symbol, date)
+                
+                # Update progress - Analysis complete
+                analysis_progress[analysis_id]["status"] = "completed"
+                analysis_progress[analysis_id]["progress"] = 100
+                analysis_progress[analysis_id]["current_agent"] = "Completed"
+                analysis_progress[analysis_id]["completed_at"] = datetime.now().isoformat()
+                analysis_progress[analysis_id]["messages"].append("✅ Analysis completed successfully!")
+                
+                # Store results
+                analysis_progress[analysis_id]["result"] = str(result) if result else None
+                analysis_progress[analysis_id]["decision"] = str(decision) if decision else None
+                
+            except Exception as e:
+                logger.error(f"❌ Background analysis failed: {e}")
+                analysis_progress[analysis_id]["status"] = "error"
+                analysis_progress[analysis_id]["progress"] = 0
+                analysis_progress[analysis_id]["current_agent"] = "Error"
+                analysis_progress[analysis_id]["messages"].append(f"❌ Analysis failed: {str(e)}")
         
-        result, decision = ta_graph.propagate(symbol, date)
+        # Start analysis in background thread
+        analysis_thread = threading.Thread(target=run_analysis)
+        analysis_thread.daemon = True
+        analysis_thread.start()
         
-        # Update progress - Analysis complete
-        analysis_progress[analysis_id]["status"] = "completed"
-        analysis_progress[analysis_id]["progress"] = 100
-        analysis_progress[analysis_id]["current_agent"] = "Completed"
-        analysis_progress[analysis_id]["completed_at"] = datetime.now().isoformat()
-        analysis_progress[analysis_id]["messages"].append("✅ Analysis completed successfully!")
-        
-        # Convert result and decision to JSON-serializable format
-        serializable_result = str(result) if result else None
-        serializable_decision = str(decision) if decision else None
-        
+        # Return immediately with analysis ID
         return jsonify({
             "analysis_id": analysis_id,
             "symbol": symbol,
             "analysis_date": date,
-            "decision": serializable_decision,
-            "result": serializable_result,
-            "timestamp": datetime.now().isoformat(),
-            "status": "completed"
+            "status": "started",
+            "message": "Analysis started. Use /progress/{analysis_id} to track progress.",
+            "timestamp": datetime.now().isoformat()
         })
         
     except Exception as e:

@@ -457,9 +457,6 @@ HTML_TEMPLATE = """
             // Reset progress
             document.getElementById('progressFill').style.width = '5%';
             
-            // Start real-time progress tracking
-            startRealTimeProgress();
-            
             try {
                 const response = await fetch('/api/analyze', {
                     method: 'POST',
@@ -473,25 +470,30 @@ HTML_TEMPLATE = """
                 
                 if (result.error) {
                     showError(result.message || 'Analysis failed');
+                } else if (result.status === 'started') {
+                    // Store analysis ID and start progress tracking for async analysis
+                    currentAnalysisId = result.analysis_id;
+                    console.log(`🚀 Analysis started with ID: ${currentAnalysisId}`);
+                    startRealTimeProgress();
                 } else {
-                    // Store analysis ID for progress tracking
+                    // Handle synchronous response (fallback)
                     currentAnalysisId = result.analysis_id;
                     showResults(result);
                 }
             } catch (error) {
                 showError('Network error: ' + error.message);
-            } finally {
-                // Stop progress tracking
+                
+                // Reset button on error
+                const analyzeBtn = document.getElementById('analyzeBtn');
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = '🔍 Start Analysis';
+                analyzeBtn.classList.remove('pulse');
+                
+                // Stop progress tracking on error
                 if (progressCheckInterval) {
                     clearInterval(progressCheckInterval);
                     progressCheckInterval = null;
                 }
-                
-                // Reset button
-                analyzeBtn.disabled = false;
-                analyzeBtn.textContent = '🔍 Start Analysis';
-                analyzeBtn.classList.remove('pulse');
-                document.getElementById('progressFill').style.width = '100%';
             }
         }
 
@@ -537,6 +539,26 @@ HTML_TEMPLATE = """
                             document.getElementById('analysisProgress').textContent = '✅ Analysis Complete';
                             document.getElementById('activeAgents').textContent = 'All agents finished';
                             document.getElementById('progressFill').style.width = '100%';
+                            
+                            // Show results from progress data
+                            if (progressData.result && progressData.decision) {
+                                const result = {
+                                    analysis_id: currentAnalysisId,
+                                    symbol: progressData.symbol,
+                                    analysis_date: progressData.date,
+                                    decision: progressData.decision,
+                                    result: progressData.result,
+                                    timestamp: progressData.completed_at,
+                                    status: 'completed'
+                                };
+                                showResults(result);
+                            }
+                            
+                            // Reset button
+                            const analyzeBtn = document.getElementById('analyzeBtn');
+                            analyzeBtn.disabled = false;
+                            analyzeBtn.textContent = '🔍 Start Analysis';
+                            analyzeBtn.classList.remove('pulse');
                         }
                     } else {
                         console.log('⚠️ Progress endpoint not responding, using fallback');
