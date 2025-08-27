@@ -254,6 +254,19 @@ def analyze_stock():
         analysis_progress[analysis_id]["current_agent"] = "Sentiment Analyst"
         analysis_progress[analysis_id]["messages"].append("😊 Sentiment analysis running...")
         
+        # Check if we have valid API keys before starting analysis
+        openai_key = os.getenv("OPENAI_API_KEY", "")
+        if not openai_key or openai_key == "test_key_demo_only":
+            analysis_progress[analysis_id]["status"] = "failed"
+            analysis_progress[analysis_id]["messages"].append("❌ Invalid OpenAI API key - please configure a valid API key")
+            return jsonify({
+                "error": "Configuration error",
+                "message": "OpenAI API key not configured properly. Please set a valid OPENAI_API_KEY.",
+                "analysis_id": analysis_id,
+                "symbol": symbol,
+                "date": date
+            }), 400
+        
         # Run analysis with timeout protection using threading
         import threading
         import queue
@@ -263,9 +276,14 @@ def analyze_stock():
         
         def run_analysis():
             try:
+                logger.info(f"🚀 Starting ta_graph.propagate for {symbol} on {date}")
+                start_time = time.time()
                 result, decision = ta_graph.propagate(symbol, date)
+                end_time = time.time()
+                logger.info(f"✅ Analysis completed in {end_time - start_time:.2f} seconds")
                 result_queue.put(('success', result, decision))
             except Exception as e:
+                logger.error(f"❌ Analysis failed: {e}")
                 result_queue.put(('error', str(e), None))
         
         # Start analysis in background thread
@@ -273,13 +291,25 @@ def analyze_stock():
         analysis_thread.daemon = True
         analysis_thread.start()
         
-        # Wait for result with timeout
-        analysis_thread.join(timeout=45)  # 45 second timeout
+        # Wait for result with timeout (increased for complex analyses)
+        # Check progress every 15 seconds and update user
+        total_timeout = 120  # 2 minutes total
+        check_interval = 15  # seconds
+        elapsed = 0
+        
+        while elapsed < total_timeout and analysis_thread.is_alive():
+            analysis_thread.join(timeout=check_interval)
+            elapsed += check_interval
+            
+            if analysis_thread.is_alive() and elapsed < total_timeout:
+                # Still running, update progress
+                analysis_progress[analysis_id]["messages"].append(f"🔄 Analysis still running... ({elapsed}s elapsed)")
+                logger.info(f"⏳ Analysis still running for {symbol} after {elapsed}s")
         
         if analysis_thread.is_alive():
             # Analysis is still running, it timed out
             analysis_progress[analysis_id]["status"] = "timeout"
-            analysis_progress[analysis_id]["messages"].append("⏰ Analysis timed out after 45 seconds")
+            analysis_progress[analysis_id]["messages"].append("⏰ Analysis timed out after 2 minutes")
             return jsonify({
                 "error": "Analysis timeout", 
                 "message": "Analysis took too long and was cancelled",
