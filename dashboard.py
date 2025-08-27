@@ -551,7 +551,9 @@ HTML_TEMPLATE = """
             checkSystemStatus();
             setInterval(checkSystemStatus, 30000); // Check every 30 seconds
             setupAutoComplete();
-            loadAnalysisHistory();
+            // Temporarily disable history loading until API endpoints are fixed
+            // loadAnalysisHistory();
+            document.getElementById('historyContainer').innerHTML = '<div class="loading">History feature temporarily disabled - fixing API endpoints...</div>';
         };
 
         function setSymbol(symbol) {
@@ -1042,7 +1044,7 @@ def dashboard():
 def health_proxy():
     """Proxy health check to TradingAgents API"""
     try:
-        response = requests.get(f"{TRADINGAGENTS_API_URL}/health", timeout=10)
+        response = requests.get(f"{TRADINGAGENTS_API_URL}/api/health", timeout=10)
         return response.json(), response.status_code
     except Exception as e:
         return {"status": "error", "message": str(e)}, 500
@@ -1055,7 +1057,7 @@ def analyze_proxy():
         
         # Forward request to TradingAgents API
         response = requests.post(
-            f"{TRADINGAGENTS_API_URL}/analyze",
+            f"{TRADINGAGENTS_API_URL}/api/analyze",
             json=data,
             timeout=600  # 10 minutes timeout
         )
@@ -1074,7 +1076,7 @@ def analyze_proxy():
 def progress_proxy(analysis_id):
     """Proxy progress request to TradingAgents API"""
     try:
-        response = requests.get(f"{TRADINGAGENTS_API_URL}/progress/{analysis_id}", timeout=10)
+        response = requests.get(f"{TRADINGAGENTS_API_URL}/api/progress/{analysis_id}", timeout=10)
         return response.json(), response.status_code
     except Exception as e:
         return {"error": "Progress check failed", "message": str(e)}, 500
@@ -1083,7 +1085,7 @@ def progress_proxy(analysis_id):
 def all_progress_proxy():
     """Proxy all progress request to TradingAgents API"""
     try:
-        response = requests.get(f"{TRADINGAGENTS_API_URL}/progress", timeout=10)
+        response = requests.get(f"{TRADINGAGENTS_API_URL}/api/progress", timeout=10)
         return response.json(), response.status_code
     except Exception as e:
         return {"error": "Progress check failed", "message": str(e)}, 500
@@ -1092,7 +1094,7 @@ def all_progress_proxy():
 def config_proxy():
     """Proxy config request to TradingAgents API"""
     try:
-        response = requests.get(f"{TRADINGAGENTS_API_URL}/config", timeout=10)
+        response = requests.get(f"{TRADINGAGENTS_API_URL}/api/config", timeout=10)
         return response.json(), response.status_code
     except Exception as e:
         return {"error": "Config failed", "message": str(e)}, 500
@@ -1101,10 +1103,37 @@ def config_proxy():
 def agents_proxy():
     """Proxy agents request to TradingAgents API"""
     try:
-        response = requests.get(f"{TRADINGAGENTS_API_URL}/agents", timeout=10)
+        response = requests.get(f"{TRADINGAGENTS_API_URL}/api/agents", timeout=10)
         return response.json(), response.status_code
     except Exception as e:
         return {"error": "Agents failed", "message": str(e)}, 500
+
+@app.route('/api/history')
+def history_proxy():
+    """Proxy history request to TradingAgents API"""
+    try:
+        response = requests.get(f"{TRADINGAGENTS_API_URL}/api/history", timeout=10)
+        return response.json(), response.status_code
+    except Exception as e:
+        return {"error": "History failed", "message": str(e)}, 500
+
+@app.route('/api/company-info/<symbol>')
+def company_info_proxy(symbol):
+    """Proxy company info request to TradingAgents API"""
+    try:
+        response = requests.get(f"{TRADINGAGENTS_API_URL}/api/company-info/{symbol}", timeout=10)
+        return response.json(), response.status_code
+    except Exception as e:
+        return {"error": "Company info failed", "message": str(e)}, 500
+
+@app.route('/api/search-companies/<query>')
+def search_companies_proxy(query):
+    """Proxy company search request to TradingAgents API"""
+    try:
+        response = requests.get(f"{TRADINGAGENTS_API_URL}/api/search-companies/{query}", timeout=10)
+        return response.json(), response.status_code
+    except Exception as e:
+        return {"error": "Company search failed", "message": str(e)}, 500
 
 if __name__ == "__main__":
     print(f"🚀 Starting TradingAgents Dashboard on port {DASHBOARD_PORT}...")
