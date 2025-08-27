@@ -563,18 +563,110 @@ Analysis Progress:
 def download_analysis_pdf(analysis_id):
     """Download analysis summary as PDF file"""
     try:
-        # Handle sample data
+        # Handle sample data with comprehensive details
         if analysis_id == 'sample_001':
             data = {
                 'analysis_id': 'sample_001',
                 'symbol': 'AAPL',
+                'company_name': 'Apple Inc.',
                 'date': '2025-08-27',
                 'decision': 'BUY',
                 'started_at': '2025-08-27T10:00:00',
                 'completed_at': '2025-08-27T10:05:00',
                 'duration_formatted': '5m 0s',
-                'messages': ['Sample analysis - run a real analysis to see your history', 'This is a demo analysis summary'],
-                'result': 'Sample analysis result: Apple Inc. shows strong fundamentals with positive technical indicators suggesting a BUY recommendation based on current market conditions.'
+                'messages': [
+                    'Initializing multi-agent trading analysis system',
+                    'Fundamental Analyst: Gathering financial metrics and company data',
+                    'Technical Analyst: Analyzing price patterns and indicators (RSI: 45.2, MACD: Bullish)',
+                    'Sentiment Analyst: Processing social media and news sentiment (Score: 0.75 - Positive)',
+                    'News Analyst: Evaluating recent earnings report and market conditions',
+                    'Risk Manager: Assessing portfolio risk and position sizing recommendations',
+                    'Portfolio Manager: Final decision validation and trade approval',
+                    'Analysis complete - Final recommendation generated'
+                ],
+                'result': '''Apple Inc. demonstrates strong investment potential based on comprehensive multi-agent analysis:
+
+**Fundamental Analysis:**
+- Revenue growth: 8.2% YoY, exceeding analyst expectations
+- P/E ratio: 28.5 (reasonable for tech sector)
+- Strong balance sheet with $165B cash reserves
+- Market cap: $3.1T, maintaining leadership position
+
+**Technical Analysis:**
+- RSI: 45.2 (neutral, room for upside)
+- MACD: Bullish crossover detected
+- Support level: $175, Resistance: $195
+- 20-day MA trending upward
+- Volume indicators show institutional accumulation
+
+**Sentiment Analysis:**
+- Social media sentiment: 75% positive
+- Analyst upgrades from 3 major firms this week
+- Consumer confidence in Apple products remains high
+- iPhone 15 launch driving positive momentum
+
+**Risk Assessment:**
+- Low volatility compared to tech peers
+- Diversified product portfolio reduces risk
+- Strong moat in ecosystem and brand loyalty
+- Recommended position size: 5-8% of portfolio''',
+                'agent_results': {
+                    'fundamental_analyst': {
+                        'revenue_growth': '8.2% YoY',
+                        'pe_ratio': 28.5,
+                        'cash_position': '$165B',
+                        'debt_ratio': 'Low',
+                        'recommendation': 'Strong Buy'
+                    },
+                    'technical_analyst': {
+                        'rsi': 45.2,
+                        'macd': 'Bullish crossover',
+                        'support_level': '$175',
+                        'resistance_level': '$195',
+                        'trend': 'Upward',
+                        'recommendation': 'Buy'
+                    },
+                    'sentiment_analyst': {
+                        'social_sentiment': '75% positive',
+                        'news_sentiment': '68% positive',
+                        'analyst_ratings': '12 Buy, 3 Hold, 1 Sell',
+                        'recommendation': 'Positive'
+                    }
+                },
+                'technical_analysis': {
+                    'RSI (14-day)': '45.2 - Neutral',
+                    'MACD': 'Bullish crossover - Buy signal',
+                    '20-day MA': '$182.50 - Uptrend',
+                    '50-day MA': '$178.25 - Above price',
+                    'Volume': 'Above average - Accumulation',
+                    'Bollinger Bands': 'Price near middle band'
+                },
+                'fundamental_analysis': {
+                    'Market Cap': '$3.1 Trillion',
+                    'P/E Ratio': '28.5',
+                    'Revenue Growth': '8.2% YoY',
+                    'Profit Margin': '25.8%',
+                    'ROE': '147.8%',
+                    'Debt/Equity': '0.18 - Low',
+                    'Cash Position': '$165 Billion'
+                },
+                'risk_assessment': '''Risk Level: LOW-MODERATE
+
+Positive Risk Factors:
+• Strong brand moat and customer loyalty
+• Diversified product ecosystem
+• Consistent cash generation
+• Conservative debt levels
+
+Risk Considerations:
+• High valuation multiples
+• Regulatory scrutiny potential
+• China market dependency
+• Technology disruption risks
+
+Recommended position size: 5-8% of portfolio
+Stop loss: $170 (-8% from entry)
+Take profit targets: $200 (+15%), $220 (+25%)'''
             }
         elif analysis_id not in analysis_progress:
             return jsonify({
@@ -606,39 +698,184 @@ def download_analysis_pdf(analysis_id):
             alignment=1  # Center
         )
         
-        # Build PDF content
+        # Build comprehensive PDF content
         story = []
         
+        # Custom styles for better formatting
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=14,
+            textColor='darkblue',
+            spaceAfter=12,
+            spaceBefore=20
+        )
+        
+        subheading_style = ParagraphStyle(
+            'CustomSubHeading',
+            parent=styles['Heading3'],
+            fontSize=12,
+            textColor='navy',
+            spaceAfter=8,
+            spaceBefore=12
+        )
+        
         # Title
-        story.append(Paragraph("TradingAgents Analysis Summary", title_style))
+        story.append(Paragraph("TradingAgents Multi-Agent Analysis Report", title_style))
         story.append(Spacer(1, 12))
         
-        # Analysis details
-        details = f"""
-        <b>Analysis ID:</b> {analysis_id}<br/>
-        <b>Symbol:</b> {data.get('symbol', 'Unknown')}<br/>
-        <b>Analysis Date:</b> {data.get('date', 'Unknown')}<br/>
-        <b>Started:</b> {data.get('started_at', 'Unknown')}<br/>
-        <b>Completed:</b> {data.get('completed_at', 'Unknown')}<br/>
-        <b>Duration:</b> {data.get('duration_formatted', 'Unknown')}<br/>
-        <b>Decision:</b> <b>{data.get('decision', 'Unknown')}</b>
-        """
-        story.append(Paragraph(details, styles['Normal']))
+        # Executive Summary Box
+        from reportlab.lib.colors import lightgrey, darkblue
+        from reportlab.platypus import Table, TableStyle
+        
+        decision_color = 'green' if data.get('decision', '').upper() == 'BUY' else 'red' if data.get('decision', '').upper() == 'SELL' else 'orange'
+        
+        exec_summary = [
+            ['Analysis ID:', analysis_id],
+            ['Symbol:', data.get('symbol', 'Unknown')],
+            ['Company:', data.get('company_name', 'N/A')],
+            ['Analysis Date:', data.get('date', 'Unknown')],
+            ['Duration:', data.get('duration_formatted', 'Unknown')],
+            ['Final Decision:', f"<font color='{decision_color}'><b>{data.get('decision', 'Unknown')}</b></font>"],
+        ]
+        
+        exec_table = Table(exec_summary, colWidths=[2.5*inch, 3.5*inch])
+        exec_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,-1), lightgrey),
+            ('TEXTCOLOR', (0,0), (-1,-1), 'black'),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+            ('FONTSIZE', (0,0), (-1,-1), 10),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+            ('GRID', (0,0), (-1,-1), 1, 'black')
+        ]))
+        
+        story.append(exec_table)
         story.append(Spacer(1, 20))
         
-        # Analysis Progress
-        story.append(Paragraph("Analysis Progress:", styles['Heading2']))
+        # Analysis Progress Timeline
+        story.append(Paragraph("Analysis Timeline:", heading_style))
         messages = data.get('messages', [])
         for i, message in enumerate(messages, 1):
-            story.append(Paragraph(f"{i}. {message}", styles['Normal']))
-            story.append(Spacer(1, 6))
+            # Clean the message text
+            clean_message = str(message).replace('<', '&lt;').replace('>', '&gt;')
+            story.append(Paragraph(f"<b>Step {i}:</b> {clean_message}", styles['Normal']))
+            story.append(Spacer(1, 4))
         
         story.append(Spacer(1, 20))
         
-        # Detailed Analysis
+        # Detailed Analysis Results
         if 'result' in data and data['result']:
-            story.append(Paragraph("Detailed Analysis:", styles['Heading2']))
-            story.append(Paragraph(str(data['result']), styles['Normal']))
+            story.append(Paragraph("Comprehensive Analysis Results:", heading_style))
+            
+            # Parse and format the analysis result
+            result = data['result']
+            if isinstance(result, dict):
+                # If result is structured data, format it nicely
+                for section, content in result.items():
+                    story.append(Paragraph(f"{section.replace('_', ' ').title()}:", subheading_style))
+                    if isinstance(content, (list, dict)):
+                        story.append(Paragraph(str(content), styles['Normal']))
+                    else:
+                        clean_content = str(content).replace('<', '&lt;').replace('>', '&gt;')
+                        story.append(Paragraph(clean_content, styles['Normal']))
+                    story.append(Spacer(1, 8))
+            else:
+                # Clean and format the result text
+                clean_result = str(result).replace('<', '&lt;').replace('>', '&gt;')
+                # Split into paragraphs for better readability
+                paragraphs = clean_result.split('\n\n')
+                for para in paragraphs:
+                    if para.strip():
+                        story.append(Paragraph(para.strip(), styles['Normal']))
+                        story.append(Spacer(1, 8))
+        
+        # Agent Analysis Breakdown (if available)
+        if 'agent_results' in data:
+            story.append(Paragraph("Individual Agent Analysis:", heading_style))
+            
+            agent_results = data['agent_results']
+            for agent_name, agent_data in agent_results.items():
+                story.append(Paragraph(f"{agent_name.replace('_', ' ').title()}:", subheading_style))
+                
+                if isinstance(agent_data, dict):
+                    for key, value in agent_data.items():
+                        if value:
+                            clean_value = str(value).replace('<', '&lt;').replace('>', '&gt;')
+                            story.append(Paragraph(f"<b>{key.replace('_', ' ').title()}:</b> {clean_value}", styles['Normal']))
+                else:
+                    clean_data = str(agent_data).replace('<', '&lt;').replace('>', '&gt;')
+                    story.append(Paragraph(clean_data, styles['Normal']))
+                
+                story.append(Spacer(1, 10))
+        
+        # Technical Indicators (if available)
+        if 'technical_analysis' in data:
+            story.append(Paragraph("Technical Analysis:", heading_style))
+            tech_data = data['technical_analysis']
+            
+            if isinstance(tech_data, dict):
+                for indicator, value in tech_data.items():
+                    story.append(Paragraph(f"<b>{indicator}:</b> {value}", styles['Normal']))
+                    story.append(Spacer(1, 4))
+            else:
+                clean_tech = str(tech_data).replace('<', '&lt;').replace('>', '&gt;')
+                story.append(Paragraph(clean_tech, styles['Normal']))
+            
+            story.append(Spacer(1, 15))
+        
+        # Fundamental Analysis (if available)
+        if 'fundamental_analysis' in data:
+            story.append(Paragraph("Fundamental Analysis:", heading_style))
+            fund_data = data['fundamental_analysis']
+            
+            if isinstance(fund_data, dict):
+                for metric, value in fund_data.items():
+                    story.append(Paragraph(f"<b>{metric}:</b> {value}", styles['Normal']))
+                    story.append(Spacer(1, 4))
+            else:
+                clean_fund = str(fund_data).replace('<', '&lt;').replace('>', '&gt;')
+                story.append(Paragraph(clean_fund, styles['Normal']))
+            
+            story.append(Spacer(1, 15))
+        
+        # Risk Assessment (if available)
+        if 'risk_assessment' in data:
+            story.append(Paragraph("Risk Assessment:", heading_style))
+            risk_data = data['risk_assessment']
+            clean_risk = str(risk_data).replace('<', '&lt;').replace('>', '&gt;')
+            story.append(Paragraph(clean_risk, styles['Normal']))
+            story.append(Spacer(1, 15))
+        
+        # Final Recommendation Summary
+        story.append(Paragraph("Final Recommendation:", heading_style))
+        recommendation = f"""
+        Based on the comprehensive multi-agent analysis involving fundamental analysts, 
+        technical analysts, sentiment analysts, and risk managers, the final trading 
+        decision for {data.get('symbol', 'the analyzed symbol')} is: 
+        <font color='{decision_color}'><b>{data.get('decision', 'Unknown')}</b></font>
+        
+        This recommendation is based on {len(messages)} analysis steps completed over 
+        {data.get('duration_formatted', 'unknown duration')}.
+        """
+        story.append(Paragraph(recommendation, styles['Normal']))
+        
+        # Disclaimer
+        story.append(Spacer(1, 30))
+        disclaimer = """
+        <b>Disclaimer:</b> This analysis is generated by AI agents and is for informational 
+        purposes only. It does not constitute financial advice. Please conduct your own 
+        research and consult with financial professionals before making investment decisions.
+        Trading involves risk and you may lose money.
+        """
+        disclaimer_style = ParagraphStyle(
+            'Disclaimer',
+            parent=styles['Normal'],
+            fontSize=8,
+            textColor='grey',
+            alignment=1  # Center
+        )
+        story.append(Paragraph(disclaimer, disclaimer_style))
         
         # Build PDF
         doc.build(story)
