@@ -21,7 +21,7 @@ services:
       - key: MAX_DEBATE_ROUNDS
         value: 0
       - key: ONLINE_TOOLS
-        value: false
+        value: true
       - key: OPENAI_API_KEY
         sync: false
       - key: FINNHUB_API_KEY
