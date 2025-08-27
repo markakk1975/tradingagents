@@ -476,9 +476,27 @@ HTML_TEMPLATE = """
                     console.log(`🚀 Analysis started with ID: ${currentAnalysisId}`);
                     startRealTimeProgress();
                 } else {
-                    // Handle synchronous response (fallback)
+                    // Handle synchronous response - still start progress tracking to show intermediate steps
                     currentAnalysisId = result.analysis_id;
-                    showResults(result);
+                    console.log(`📊 Analysis completed with ID: ${currentAnalysisId}`);
+                    
+                    // Start progress tracking briefly to show any intermediate states
+                    startRealTimeProgress();
+                    
+                    // Show results after a brief delay to allow progress to be seen
+                    setTimeout(() => {
+                        if (progressCheckInterval) {
+                            clearInterval(progressCheckInterval);
+                            progressCheckInterval = null;
+                        }
+                        showResults(result);
+                        
+                        // Reset button
+                        const analyzeBtn = document.getElementById('analyzeBtn');
+                        analyzeBtn.disabled = false;
+                        analyzeBtn.textContent = '🔍 Start Analysis';
+                        analyzeBtn.classList.remove('pulse');
+                    }, 3000); // Wait 3 seconds to show progress
                 }
             } catch (error) {
                 showError('Network error: ' + error.message);

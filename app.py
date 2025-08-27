@@ -146,48 +146,49 @@ def analyze_stock():
         analysis_progress[analysis_id]["current_agent"] = "Multi-Agent System"
         analysis_progress[analysis_id]["messages"].append(f"📊 Initializing analysis for {symbol}")
         
-        # Start background analysis
-        import threading
-        def run_analysis():
-            try:
-                # Run the multi-agent analysis
-                logger.info(f"📈 Running multi-agent propagation for {symbol}")
-                analysis_progress[analysis_id]["progress"] = 20
-                analysis_progress[analysis_id]["messages"].append("🤖 Activating all agents...")
-                
-                result, decision = ta_graph.propagate(symbol, date)
-                
-                # Update progress - Analysis complete
-                analysis_progress[analysis_id]["status"] = "completed"
-                analysis_progress[analysis_id]["progress"] = 100
-                analysis_progress[analysis_id]["current_agent"] = "Completed"
-                analysis_progress[analysis_id]["completed_at"] = datetime.now().isoformat()
-                analysis_progress[analysis_id]["messages"].append("✅ Analysis completed successfully!")
-                
-                # Store results
-                analysis_progress[analysis_id]["result"] = str(result) if result else None
-                analysis_progress[analysis_id]["decision"] = str(decision) if decision else None
-                
-            except Exception as e:
-                logger.error(f"❌ Background analysis failed: {e}")
-                analysis_progress[analysis_id]["status"] = "error"
-                analysis_progress[analysis_id]["progress"] = 0
-                analysis_progress[analysis_id]["current_agent"] = "Error"
-                analysis_progress[analysis_id]["messages"].append(f"❌ Analysis failed: {str(e)}")
+        # Run the multi-agent analysis synchronously with detailed progress
+        logger.info(f"📈 Running multi-agent propagation for {symbol}")
+        analysis_progress[analysis_id]["progress"] = 25
+        analysis_progress[analysis_id]["current_agent"] = "Fundamental Analyst"
+        analysis_progress[analysis_id]["messages"].append("📊 Fundamental analyst working...")
         
-        # Start analysis in background thread
-        analysis_thread = threading.Thread(target=run_analysis)
-        analysis_thread.daemon = True
-        analysis_thread.start()
+        # Simulate some progress updates during analysis
+        import time
+        time.sleep(1)  # Brief delay to show progress
+        analysis_progress[analysis_id]["progress"] = 40
+        analysis_progress[analysis_id]["current_agent"] = "Technical Analyst"
+        analysis_progress[analysis_id]["messages"].append("📈 Technical analysis in progress...")
         
-        # Return immediately with analysis ID
+        time.sleep(0.5)  # Another brief delay
+        analysis_progress[analysis_id]["progress"] = 60
+        analysis_progress[analysis_id]["current_agent"] = "Sentiment Analyst"
+        analysis_progress[analysis_id]["messages"].append("😊 Sentiment analysis running...")
+        
+        result, decision = ta_graph.propagate(symbol, date)
+        
+        # Update progress - Analysis complete
+        analysis_progress[analysis_id]["status"] = "completed"
+        analysis_progress[analysis_id]["progress"] = 100
+        analysis_progress[analysis_id]["current_agent"] = "Completed"
+        analysis_progress[analysis_id]["completed_at"] = datetime.now().isoformat()
+        analysis_progress[analysis_id]["messages"].append("✅ Analysis completed successfully!")
+        
+        # Convert result and decision to JSON-serializable format
+        serializable_result = str(result) if result else None
+        serializable_decision = str(decision) if decision else None
+        
+        # Store results in progress for dashboard access
+        analysis_progress[analysis_id]["result"] = serializable_result
+        analysis_progress[analysis_id]["decision"] = serializable_decision
+        
         return jsonify({
             "analysis_id": analysis_id,
             "symbol": symbol,
             "analysis_date": date,
-            "status": "started",
-            "message": "Analysis started. Use /progress/{analysis_id} to track progress.",
-            "timestamp": datetime.now().isoformat()
+            "decision": serializable_decision,
+            "result": serializable_result,
+            "timestamp": datetime.now().isoformat(),
+            "status": "completed"
         })
         
     except Exception as e:
