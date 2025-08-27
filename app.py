@@ -149,7 +149,7 @@ def initialize_trading_agents():
         traceback.print_exc()
         return False
 
-@app.route('/health')
+@app.route('/api/health')
 def health_check():
     """Health check endpoint for Render"""
     global ta_graph
@@ -189,7 +189,7 @@ def index():
         }
     })
 
-@app.route('/analyze', methods=['POST'])
+@app.route('/api/analyze', methods=['POST'])
 def analyze_stock():
     """Analyze a stock using the multi-agent system"""
     global ta_graph
@@ -338,7 +338,7 @@ def analyze_stock():
             "date": date
         }), 500
 
-@app.route('/progress/<analysis_id>')
+@app.route('/api/progress/<analysis_id>')
 def get_analysis_progress(analysis_id):
     """Get real-time analysis progress"""
     if analysis_id not in analysis_progress:
@@ -349,7 +349,7 @@ def get_analysis_progress(analysis_id):
     
     return jsonify(analysis_progress[analysis_id])
 
-@app.route('/progress')
+@app.route('/api/progress')
 def list_active_analyses():
     """List all active and recent analyses"""
     return jsonify({
@@ -358,7 +358,7 @@ def list_active_analyses():
         "analyses": analysis_progress
     })
 
-@app.route('/config')
+@app.route('/api/config')
 def get_config():
     """Get current system configuration"""
     global ta_graph
