@@ -399,22 +399,28 @@ HTML_TEMPLATE = """
         }
 
         async function checkSystemStatus() {
+            console.log('🔍 Checking system status...');
             try {
                 const response = await fetch('/api/health');
+                console.log('📡 API Response:', response.status);
                 const data = await response.json();
+                console.log('📊 API Data:', data);
                 
                 if (data.status === 'healthy') {
+                    console.log('✅ System is healthy, updating UI');
                     document.getElementById('systemStatus').innerHTML = 
                         '<span class="status-indicator status-healthy"></span>System Healthy';
                     document.getElementById('apiStatus').innerHTML = 
                         '<span class="status-indicator status-healthy"></span>API Connected';
                 } else {
+                    console.log('❌ System not healthy:', data.status);
                     document.getElementById('systemStatus').innerHTML = 
                         '<span class="status-indicator status-error"></span>System Error';
                     document.getElementById('apiStatus').innerHTML = 
                         '<span class="status-indicator status-error"></span>API Error';
                 }
             } catch (error) {
+                console.error('💥 API Error:', error);
                 document.getElementById('systemStatus').innerHTML = 
                     '<span class="status-indicator status-error"></span>Connection Failed';
                 document.getElementById('apiStatus').innerHTML = 
