@@ -761,9 +761,8 @@ HTML_TEMPLATE = """
             checkSystemStatus();
             setInterval(checkSystemStatus, 30000); // Check every 30 seconds
             setupAutoComplete();
-            // Temporarily disable history loading until API endpoints are fixed
-            // loadAnalysisHistory();
-            document.getElementById('historyContainer').innerHTML = '<div class="loading">History feature temporarily disabled - fixing API endpoints...</div>';
+            // Load analysis history on startup
+            loadAnalysisHistory();
         };
 
         function setSymbol(symbol) {
