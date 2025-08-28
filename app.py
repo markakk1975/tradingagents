@@ -896,6 +896,72 @@ Take profit targets: $200 (+15%), $220 (+25%)'''
             'message': str(e)
         }), 500
 
+@app.route('/api/stock-info/<symbol>')
+def get_stock_info(symbol):
+    """Get current stock information including price, P/E, market cap, etc."""
+    try:
+        import yfinance as yf
+        
+        # Get stock data
+        ticker = yf.Ticker(symbol)
+        info = ticker.info
+        hist = ticker.history(period="1d")
+        
+        # Extract key metrics
+        current_price = info.get('currentPrice') or info.get('regularMarketPrice')
+        if current_price is None and not hist.empty:
+            current_price = float(hist['Close'].iloc[-1])
+        
+        # Format metrics
+        stock_data = {
+            'symbol': symbol,
+            'current_price': round(current_price, 2) if current_price else None,
+            'currency': info.get('currency', 'USD'),
+            'market_cap': format_market_cap(info.get('marketCap')),
+            'pe_ratio': round(info.get('trailingPE'), 2) if info.get('trailingPE') else None,
+            'dividend_yield': round(info.get('dividendYield', 0) * 100, 2) if info.get('dividendYield') else None,
+            'day_change_pct': round(info.get('regularMarketChangePercent', 0), 2),
+            'volume': format_volume(info.get('volume')),
+            'avg_volume': format_volume(info.get('averageVolume')),
+            'fifty_two_week_high': round(info.get('fiftyTwoWeekHigh'), 2) if info.get('fiftyTwoWeekHigh') else None,
+            'fifty_two_week_low': round(info.get('fiftyTwoWeekLow'), 2) if info.get('fiftyTwoWeekLow') else None,
+            'company_name': info.get('longName', symbol)
+        }
+        
+        return jsonify(stock_data)
+        
+    except Exception as e:
+        logger.error(f"Error fetching stock info for {symbol}: {e}")
+        return jsonify({'error': str(e), 'symbol': symbol}), 500
+
+def format_market_cap(market_cap):
+    """Format market cap in readable format"""
+    if not market_cap:
+        return None
+    
+    if market_cap >= 1e12:
+        return f"${market_cap/1e12:.1f}T"
+    elif market_cap >= 1e9:
+        return f"${market_cap/1e9:.1f}B"
+    elif market_cap >= 1e6:
+        return f"${market_cap/1e6:.1f}M"
+    else:
+        return f"${market_cap:,.0f}"
+
+def format_volume(volume):
+    """Format volume in readable format"""
+    if not volume:
+        return None
+    
+    if volume >= 1e9:
+        return f"{volume/1e9:.1f}B"
+    elif volume >= 1e6:
+        return f"{volume/1e6:.1f}M"
+    elif volume >= 1e3:
+        return f"{volume/1e3:.1f}K"
+    else:
+        return f"{volume:,.0f}"
+
 @app.route('/api/company-info/<symbol>')
 def get_company_info(symbol):
     """Get company name and info for a stock symbol"""

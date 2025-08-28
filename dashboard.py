@@ -444,6 +444,48 @@ HTML_TEMPLATE = """
             font-size: 0.9em;
         }
 
+        .stock-metrics {
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 8px 0;
+            font-size: 0.85em;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+        }
+
+        .metric-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .metric-value.positive {
+            color: #28a745;
+        }
+
+        .metric-value.negative {
+            color: #dc3545;
+        }
+
+        .price-main {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
         .history-actions {
             margin-top: 10px;
             display: flex;
@@ -645,6 +687,16 @@ HTML_TEMPLATE = """
 
             .history-actions {
                 gap: 6px;
+            }
+            
+            .stock-metrics {
+                grid-template-columns: 1fr;
+                font-size: 0.8em;
+                padding: 8px;
+            }
+            
+            .metric-item {
+                padding: 3px 0;
             }
         }
     </style>
@@ -926,6 +978,9 @@ HTML_TEMPLATE = """
                         <div>📊 Analysis Date: ${analysis.date}</div>
                         <div class="history-duration">⏱️ Duration: ${duration}</div>
                     </div>
+                    <div class="stock-metrics" id="stock-metrics-${analysis.analysis_id}">
+                        <div style="grid-column: 1 / -1; text-align: center; color: #666;">Loading stock data...</div>
+                    </div>
                     <div class="history-actions">
                         <button class="download-btn" onclick="downloadAnalysis('${analysis.analysis_id}', '${analysis.symbol}')">
                             📄 Text
@@ -938,7 +993,76 @@ HTML_TEMPLATE = """
 
                 historyItem.onclick = () => viewHistoryDetails(analysis);
                 historyContainer.appendChild(historyItem);
+                
+                // Fetch stock data for this symbol
+                fetchStockMetrics(analysis.symbol, analysis.analysis_id);
             });
+        }
+        
+        async function fetchStockMetrics(symbol, analysisId) {
+            try {
+                const response = await fetch(`/api/stock-info/${symbol}`);
+                const stockData = await response.json();
+                
+                if (response.ok && !stockData.error) {
+                    displayStockMetrics(stockData, analysisId);
+                } else {
+                    displayStockError(symbol, analysisId);
+                }
+            } catch (error) {
+                console.error(`Error fetching stock data for ${symbol}:`, error);
+                displayStockError(symbol, analysisId);
+            }
+        }
+        
+        function displayStockMetrics(stock, analysisId) {
+            const metricsContainer = document.getElementById(`stock-metrics-${analysisId}`);
+            if (!metricsContainer) return;
+            
+            const changeClass = stock.day_change_pct >= 0 ? 'positive' : 'negative';
+            const changeIcon = stock.day_change_pct >= 0 ? '📈' : '📉';
+            
+            metricsContainer.innerHTML = `
+                <div class="metric-item" style="grid-column: 1 / -1;">
+                    <span class="metric-label">💰 Current Price:</span>
+                    <span class="metric-value price-main ${changeClass}">$${stock.current_price || 'N/A'} ${changeIcon} ${stock.day_change_pct || 0}%</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">📊 P/E Ratio:</span>
+                    <span class="metric-value">${stock.pe_ratio || 'N/A'}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">🏢 Market Cap:</span>
+                    <span class="metric-value">${stock.market_cap || 'N/A'}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">📈 52W High:</span>
+                    <span class="metric-value">$${stock.fifty_two_week_high || 'N/A'}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">📉 52W Low:</span>
+                    <span class="metric-value">$${stock.fifty_two_week_low || 'N/A'}</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">📊 Volume:</span>
+                    <span class="metric-value">${stock.volume || 'N/A'}</span>
+                </div>
+                ${stock.dividend_yield ? `<div class="metric-item">
+                    <span class="metric-label">💵 Dividend:</span>
+                    <span class="metric-value">${stock.dividend_yield}%</span>
+                </div>` : ''}
+            `;
+        }
+        
+        function displayStockError(symbol, analysisId) {
+            const metricsContainer = document.getElementById(`stock-metrics-${analysisId}`);
+            if (!metricsContainer) return;
+            
+            metricsContainer.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; color: #dc3545; font-size: 0.8em;">
+                    ⚠️ Stock data unavailable for ${symbol}
+                </div>
+            `;
         }
 
         function viewHistoryDetails(analysis) {
@@ -1455,6 +1579,15 @@ def download_analysis_pdf_proxy(analysis_id):
         )
     except Exception as e:
         return {"error": "PDF download failed", "message": str(e)}, 500
+
+@app.route('/api/stock-info/<symbol>')
+def stock_info_proxy(symbol):
+    """Proxy stock info request to TradingAgents API"""
+    try:
+        response = requests.get(f"{TRADINGAGENTS_API_URL}/api/stock-info/{symbol}", timeout=10)
+        return response.json(), response.status_code
+    except Exception as e:
+        return {"error": "Stock info failed", "message": str(e)}, 500
 
 if __name__ == "__main__":
     print(f"🚀 Starting TradingAgents Dashboard on port {DASHBOARD_PORT}...")
